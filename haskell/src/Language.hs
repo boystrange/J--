@@ -29,12 +29,11 @@ data AtomicType
   | StringType
 
 data Type
-  = Atomic AtomicType | Array Type
+  = AtomicType AtomicType
+  | ArrayType Type
+  | MethodType Type [Type]
 
-type Element = Either Method Statement
-
-data Method
-  = Method Type Id [(Type, Id)] Statement
+data Method = Method Type Id [(Type, Id)] Statement
 
 data Statement
   = Empty

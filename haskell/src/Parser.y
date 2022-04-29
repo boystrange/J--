@@ -24,7 +24,7 @@ import Lexer
 import Atoms
 import Language
 
--- import Data.Either (partitionEithers)
+import Data.Either (partitionEithers)
 import Control.Exception
 }
 
@@ -97,7 +97,7 @@ import Control.Exception
 -- PROGRAMS
 
 Program
-  : ElementList { $1 }
+  : ElementList { partitionEithers $1 }
 
 -- ELEMENTS
 
@@ -128,8 +128,8 @@ Arg
 -- TYPES
 
 Type
-  : AtomicType { Atomic $1 }
-  | Type '[' ']' { Array $1 }
+  : AtomicType { AtomicType $1 }
+  | Type '[' ']' { ArrayType $1 }
 
 AtomicType
   : VOIDKW    { VoidType }
@@ -255,6 +255,6 @@ lexwrap = (alexMonadScan' >>=)
 happyError :: Token -> Alex a
 happyError (Token p t) = alexError' p ("parse error at token '" ++ show t ++ "'")
 
-parseProgram :: FilePath -> String -> Either String [Element]
+parseProgram :: FilePath -> String -> Either String ([Method], [Statement])
 parseProgram = runAlex' parse
 }
