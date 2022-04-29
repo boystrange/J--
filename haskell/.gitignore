@@ -1,0 +1,5 @@
+.stack-work
+*.lock
+Parser.hs
+Parser.info
+Lexer.hs

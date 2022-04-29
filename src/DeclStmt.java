@@ -13,40 +13,45 @@
 // You should have received a copy of the GNU General Public License
 // along with J--. If not, see <http://www.gnu.org/licenses/>.
 
-// Copyright 2022 Luca Padovaniimport org.antlr.v4.runtime.*;
+// Copyright 2022 Luca Padovani
+
+import java.util.*;
 
 public class DeclStmt extends Stmt {
-    private Bind bind;
-    private Expr init;
-    private Stmt stmt;
+    private Type type;
+    private List<Init> inits;
 
-    public DeclStmt(Bind bind, Expr init, Stmt stmt) {
-	this.bind = bind;
-	this.init = init;
-	this.stmt = stmt;
+    public DeclStmt(Type type, List<Init> inits) {
+	this.type = type;
+	this.inits = inits;
     }
 
     public boolean returns() {
-	return stmt.returns();
+	return false;
     }
 
     public void typecheck(Env env, Type r) {
-	bind.resolve(env.size());
-	init.typecheck(env, bind.type);
-	stmt.typecheck(env.enter(bind), r);
+	// bind.resolve(env.size());
+	// if (init != null) init.typecheck(env, bind.type);
     }
 
     public int stack() {
-	return Math.max(init.stack(), stmt.stack());
+	assert false;
+	// return init != null ? init.stack() : 0;
+	return 0;
     }
 
     public int locals() {
-	return bind.type.size() + stmt.locals();
+	assert false;
+	//return bind.type.size();
+	return 0;
     }
 
     public void compile(String lnext) {
-	init.compile();
-	Globals.emit("istore " + bind.address() + " ; " + bind.name);
-	stmt.compile(lnext);
+	// if (init != null) {
+	//     init.compile();
+	//     Globals.emit("istore " + bind.address() + " ; " + bind.name);
+	// }
+	assert false; // GOTO lnext
     }
 }

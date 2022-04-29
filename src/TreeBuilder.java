@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with J--. If not, see <http://www.gnu.org/licenses/>.
 
-// Copyright 2022 Luca Padovaniimport org.antlr.v4.runtime.*;
+// Copyright 2022 Luca Padovani
 
 import java.util.*;
 
@@ -26,17 +26,17 @@ public class TreeBuilder
     /////////////
 
     public Program visitProg(JavaMMParser.ProgContext ctxt) {
-	List<Method> methods = new ArrayList<>();
-	for (JavaMMParser.MethodContext method : ctxt.method())
-	    methods.add((Method) visit(method));
-	return new Program(methods);
+	List<Node> elements = new ArrayList<>();
+	for (JavaMMParser.ElemContext elem : ctxt.elem())
+	    elements.add((Node) visit(elem));
+	return new Program(elements);
     }
 
     ///////////
     // TYPES //
     ///////////
 
-    public Type visitType(JavaMMParser.TypeContext ctxt) {
+    public Type visitAtomicType(JavaMMParser.AtomicTypeContext ctxt) {
 	String s = ctxt.ATYPE().getText();
 	if (s.equals("void")) return VoidType.instance;
 	else if (s.equals("boolean")) return BooleanType.instance;
@@ -64,47 +64,47 @@ public class TreeBuilder
 	List<Bind> args = new ArrayList<>();
 	for (JavaMMParser.BindContext bind : ctxt.bind())
 	    args.add((Bind) visit(bind));
-	Stmt body = (Stmt) visit(ctxt.slist());
-	return new Method(type, name, args, body);
+	List<Stmt> stmts = new ArrayList<>();
+	for (JavaMMParser.StmtContext stmt : ctxt.stmt())
+	    stmts.add((Stmt) visit(stmt));
+	return new Method(type, name, args, new BlockStmt(stmts));
     }
 
-    ////////////////////
-    // STATEMENT LIST //
-    ////////////////////
+    /////////////////
+    // DECLARATION //
+    /////////////////
 
-    public Stmt visitEmpty(JavaMMParser.EmptyContext ctxt) {
-	return new EmptyStmt();
+    public DeclStmt visitDecl(JavaMMParser.DeclContext ctxt) {
+	Type type = (Type) visit(ctxt.type());
+	List<Init> inits = new ArrayList<>();
+	for (JavaMMParser.InitContext init : ctxt.init())
+	    inits.add((Init) visit(init));
+	return new DeclStmt(type, inits);
     }
 
-    public Stmt visitSeq(JavaMMParser.SeqContext ctxt) {
-	Stmt stmt = (Stmt) visit(ctxt.stmt());
-	Stmt slist = (Stmt) visit(ctxt.slist());
-	return slist instanceof EmptyStmt ? stmt : new SeqStmt(stmt, slist);
-    }
+    // INITIALIZATION //
 
-    public Stmt visitDecl(JavaMMParser.DeclContext ctxt) {
-	Bind bind = (Bind) visit(ctxt.bind());
-	Expr init = (Expr) visit(ctxt.expr());
-	Stmt slist = (Stmt) visit(ctxt.slist());
-	return new DeclStmt(bind, init, slist);
+    public Init visitInit(JavaMMParser.InitContext ctxt) {
+	String name = ctxt.ID().getText();
+	if (ctxt.expr() != null) {
+	    Expr expr = (Expr) visit(ctxt.expr());
+	    return new Init(name, expr);
+	} else
+	    return new Init(name, null);
     }
 
     ///////////////
     // STATEMENT //
     ///////////////
 
-    public Stmt visitBlock(JavaMMParser.BlockContext ctxt) {
-	Stmt slist = (Stmt) visit(ctxt.slist());
-	return slist;
+    public Stmt visitBlock(JavaMMParser.BlockStmtContext ctxt) {
+	List<Stmt> stmts = new ArrayList<>();
+	for (JavaMMParser.StmtContext stmt : ctxt.stmt())
+	    stmts.add((Stmt) visit(stmt));
+	return new BlockStmt(stmts);
     }
 
-    public Stmt visitAssign(JavaMMParser.AssignContext ctxt) {
-	String id = ctxt.ID().getText();
-	Expr e = (Expr) visit(ctxt.expr());
-	return new AssignStmt(id, e);
-    }
-
-    public Stmt visitIf(JavaMMParser.IfContext ctxt) {
+    public Stmt visitIf(JavaMMParser.IfStmtContext ctxt) {
 	Expr e = (Expr) visit(ctxt.expr());
 	Stmt s1 = (Stmt) visit(ctxt.stmt(0));
 	if (ctxt.stmt(1) != null) {
@@ -114,19 +114,19 @@ public class TreeBuilder
 	    return new IfStmt(e, s1, null);
     }
 
-    public Stmt visitWhile(JavaMMParser.WhileContext ctxt) {
+    public Stmt visitWhile(JavaMMParser.WhileStmtContext ctxt) {
 	Expr e = (Expr) visit(ctxt.expr());
 	Stmt s = (Stmt) visit(ctxt.stmt());
 	return new WhileStmt(e, s);
     }
 
-    public Stmt visitDoWhile(JavaMMParser.DoWhileContext ctxt) {
+    public Stmt visitDoWhile(JavaMMParser.DoWhileStmtContext ctxt) {
 	Stmt s = (Stmt) visit(ctxt.stmt());
 	Expr e = (Expr) visit(ctxt.expr());
 	return new DoWhileStmt(s, e);
     }
 
-    public Stmt visitReturn(JavaMMParser.ReturnContext ctxt) {
+    public Stmt visitReturn(JavaMMParser.ReturnStmtContext ctxt) {
 	if (ctxt.expr() != null) {
 	    Expr e = (Expr) visit(ctxt.expr());
 	    return new ReturnStmt(e);
@@ -139,42 +139,65 @@ public class TreeBuilder
 	return new ExprStmt(e);
     }
 
+    /////////////
+    // LITERAL //
+    /////////////
+
+    public Const visitInt(JavaMMParser.IntConstContext ctxt) {
+	return null;
+    }
+
+    public Const visitFloat(JavaMMParser.FloatConstContext ctxt) {
+	return null;
+    }
+
+    public Const visitDouble(JavaMMParser.DoubleConstContext ctxt) {
+	return null;
+    }
+
+    public Const visitChar(JavaMMParser.CharConstContext ctxt) {
+	return null;
+    }
+
+    public Const visitString(JavaMMParser.StringConstContext ctxt) {
+	return null;
+    }
+
+    public Const visitBoolean(JavaMMParser.BooleanConstContext ctxt) {
+	String s = ctxt.BOOLEAN().getText();
+	return new BooleanConst(s.equals("true"));
+    }
+
+    ///////////////
+    // REFERENCE //
+    ///////////////
+
     ////////////////
     // EXPRESSION //
     ////////////////
 
-    public Expr visitInt(JavaMMParser.IntContext ctxt) {
-	int n = Integer.parseInt(ctxt.INT().getText());
-	return new IntExpr(n);
+    public Expr visitLiteral(JavaMMParser.LiteralExprContext ctxt) {
+	Const c = (Const) visit(ctxt.literal());
+	return new ConstExpr(c);
     }
 
-    public Expr visitBool(JavaMMParser.BoolContext ctxt) {
-	String s = ctxt.BOOL().getText();
-	return new BoolExpr(s.equals("true"));
+    public Expr visitRef(JavaMMParser.RefExprContext ctxt) {
+	Ref ref = (Ref) visit(ctxt.ref());
+	return new RefExpr(ref);
     }
 
-    public Expr visitId(JavaMMParser.IdContext ctxt) {
-	String id = ctxt.ID().getText();
-	return new IdExpr(id);
-    }
-
-    public Expr visitCall(JavaMMParser.CallContext ctxt) {
+    public Expr visitCall(JavaMMParser.CallExprContext ctxt) {
 	List<Expr> args = new ArrayList<>();
 	for (JavaMMParser.ExprContext c : ctxt.expr())
 	    args.add((Expr) visit(c));
 	return new CallExpr(ctxt.ID().getText(), args);
     }
 
-    public Node visitParens(JavaMMParser.ParensContext ctxt) {
+    public Node visitParens(JavaMMParser.ParensExprContext ctxt) {
 	return visit(ctxt.expr());
     }
 
-    public Expr visitNot(JavaMMParser.NotContext ctxt) {
-	Expr e = (Expr) visit(ctxt.expr());
-	return new NotExpr(e);
-    }
-
-    public Expr visitAdd(JavaMMParser.AddContext ctxt) {
+    public Expr visitAdd(JavaMMParser.AddExprContext ctxt) {
 	Expr e1 = (Expr) visit(ctxt.expr(0));
 	Expr e2 = (Expr) visit(ctxt.expr(1));
 	switch (ctxt.op.getType()) {
@@ -187,7 +210,7 @@ public class TreeBuilder
 	}
     }
 
-    public Expr visitMul(JavaMMParser.MulContext ctxt) {
+    public Expr visitMul(JavaMMParser.MulExprContext ctxt) {
 	Expr e1 = (Expr) visit(ctxt.expr(0));
 	Expr e2 = (Expr) visit(ctxt.expr(1));
 	switch (ctxt.op.getType()) {
@@ -202,7 +225,7 @@ public class TreeBuilder
 	}
     }
 
-    public Expr visitRel(JavaMMParser.RelContext ctxt) {
+    public Expr visitRel(JavaMMParser.RelExprContext ctxt) {
 	Expr e1 = (Expr) visit(ctxt.expr(0));
 	Expr e2 = (Expr) visit(ctxt.expr(1));
 	switch (ctxt.op.getType()) {
@@ -223,15 +246,20 @@ public class TreeBuilder
 	}
     }
 
-    public Expr visitAnd(JavaMMParser.AndContext ctxt) {
+    public Expr visitAnd(JavaMMParser.AndExprContext ctxt) {
 	Expr e1 = (Expr) visit(ctxt.expr(0));
 	Expr e2 = (Expr) visit(ctxt.expr(1));
 	return new AndExpr(e1, e2);
     }
 
-    public Expr visitOr(JavaMMParser.OrContext ctxt) {
+    public Expr visitOr(JavaMMParser.OrExprContext ctxt) {
 	Expr e1 = (Expr) visit(ctxt.expr(0));
 	Expr e2 = (Expr) visit(ctxt.expr(1));
 	return new OrExpr(e1, e2);
+    }
+
+    public Expr visitNot(JavaMMParser.NotExprContext ctxt) {
+	Expr e = (Expr) visit(ctxt.expr());
+	return new NotExpr(e);
     }
 }

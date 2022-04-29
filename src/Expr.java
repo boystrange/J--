@@ -15,16 +15,16 @@
 
 // Copyright 2022 Luca Padovaniimport org.antlr.v4.runtime.*;
 
-public abstract class Expr extends Node {
-    public abstract Type typeof(Env env);
+public class Expr extends Node {
+    public Type typeof(Env env) { return null; }
 
     public void typecheck(Env env, Type t) {
 	Type s = typeof(env);
 	if (t != s) throw Globals.typemismatch(t, s);
     }
 
-    public abstract int stack();
-    public abstract void compile();
+    public int stack() { return 0; }
+    public void compile() { }
 
     public void compile(String ltrue, String lfalse) {
 	throw new RuntimeException("internal error");

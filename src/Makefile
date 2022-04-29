@@ -6,6 +6,8 @@ SOURCES = \
   JavaMMParser.java \
   JavaMMVisitor.java \
   JavaMMBaseVisitor.java \
+  Const.java \
+  BooleanConst.java \
   Globals.java \
   Program.java \
   Method.java \
@@ -16,6 +18,7 @@ SOURCES = \
   BooleanType.java \
   MethodType.java \
   Node.java \
+  Init.java \
   Stmt.java \
   EmptyStmt.java \
   AssignStmt.java \
@@ -27,7 +30,12 @@ SOURCES = \
   BlockStmt.java \
   SeqStmt.java \
   DeclStmt.java \
+  Ref.java \
+  IdRef.java \
+  ArrayRef.java \
   Expr.java \
+  RefExpr.java \
+  ConstExpr.java \
   CallExpr.java \
   LogicExpr.java \
   NotExpr.java \
@@ -48,7 +56,7 @@ SOURCES = \
 CLASSES = $(SOURCES:%.java=%.class)
 
 JAR = JavaMM.jar
-ANTLRJAR = /usr/local/Cellar/antlr/4.9.3/antlr-4.9.3-complete.jar
+ANTLRJAR = /usr/local/Cellar/antlr/4.10.1/antlr-4.10.1-complete.jar
 
 all: $(JAR)
 

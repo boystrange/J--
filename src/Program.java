@@ -18,22 +18,22 @@
 import java.util.*;
 
 public class Program extends Node {
-    public List<Method> methods;
+    public List<Node> elements;
 
-    public Program(List<Method> methods) {
-	this.methods = methods;
+    public Program(List<Node> elements) {
+	this.elements = elements;
     }
 
-    public void typecheck() {
-	List<Bind> binds = new ArrayList<>();
-	for (Method method : methods)
-	    binds.add(new Bind(method.typeof(), method.name));
-	Env env = new NilEnv().enter(binds);
-	for (Method method : methods)
-	    method.typecheck(env);
-    }
+    // public void typecheck() {
+    // 	List<Bind> binds = new ArrayList<>();
+    // 	for (Method method : methods)
+    // 	    binds.add(new Bind(method.typeof(), method.name));
+    // 	Env env = new NilEnv().enter(binds);
+    // 	for (Method method : methods)
+    // 	    method.typecheck(env);
+    // }
 
-    public void compile() {
-	for (Method method : methods) method.compile();
-    }
+    // public void compile() {
+    // 	for (Method method : methods) method.compile();
+    // }
 }

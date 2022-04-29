@@ -23,8 +23,8 @@ import java.io.InputStream;
 public class JavaMM {
     public static void main(String[] args) throws Exception {
 	if (args.length != 1) {
-	    System.out.println("Mini Java Compiler 0.1");
-	    System.out.println("Usage: JavaMMC <source>");
+	    System.out.println("Java-- Compiler 0.1");
+	    System.out.println("Usage: j-- <source>");
 	    System.out.println("where <source> is a file name or - for standard input.");
 	    System.exit(-1);
 	}
@@ -36,7 +36,7 @@ public class JavaMM {
 	JavaMMParser parser = new JavaMMParser(tokens);
 	ParseTree tree = parser.prog();
 	Program prog = (Program) new TreeBuilder().visit(tree);
-	prog.typecheck();
-	prog.compile();
+	// prog.typecheck();
+	// prog.compile();
     }
 }

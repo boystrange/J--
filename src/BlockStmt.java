@@ -13,32 +13,42 @@
 // You should have received a copy of the GNU General Public License
 // along with J--. If not, see <http://www.gnu.org/licenses/>.
 
-// Copyright 2022 Luca Padovaniimport org.antlr.v4.runtime.*;
+// Copyright 2022 Luca Padovani
+
+import java.util.*;
 
 public class BlockStmt extends Stmt {
-    private Stmt s;
+    private List<Stmt> stmts;
 
-    public BlockStmt(Stmt s) {
-	this.s = s;
+    public BlockStmt(List<Stmt> stmts) {
+	this.stmts = stmts;
     }
 
     public boolean returns() {
-	return s.returns();
+	assert false;
+	// return s.returns();
+	return false;
     }
 
     public void typecheck(Env env, Type r) {
-	s.typecheck(env, r);
+	assert false;
+	// s.typecheck(env, r);
     }
 
     public int stack() {
-	return s.stack();
+	assert false;
+	// return s.stack();
+	return 0;
     }
 
     public int locals() {
-	return s.locals();
+	assert false;
+	// return s.locals();
+	return 0;
     }
 
     public void compile(String lnext) {
-	s.compile(lnext);
+	assert false;
+	// s.compile(lnext);
     }
 }

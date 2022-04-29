@@ -1,37 +1,61 @@
 grammar JavaMM;
 
-prog	: method* ;
+prog	: elem* ;
 
-stmt	: ID '=' expr ';'                                       # Assign
-    	| 'if' '(' expr ')' stmt ('else' stmt)?                 # If
-    	| 'while' '(' expr ')' stmt                             # While
-    	| 'do' stmt 'while' '(' expr ')' ';'                    # DoWhile
-    	| 'return' expr? ';'                              	# Return
+elem	: method						# DeclElem
+	| stmt							# StmtElem
+	;
+
+stmt	: ';'							# EmptyStmt
+    	| 'if' '(' expr ')' stmt ('else' stmt)?                 # IfStmt
+    	| 'while' '(' expr ')' stmt                             # WhileStmt
+    	| 'do' stmt 'while' '(' expr ')' ';'                    # DoWhileStmt
+	| 'for' '(' ';' expr ';' ')' stmt			# ForStmt
+    	| 'return' expr? ';'                              	# ReturnStmt
     	| expr ';'	       	   				# ExprStmt
-    	| '{' slist '}'                                         # Block
+    	| '{' stmt* '}'                                         # BlockStmt
+	| decl	    						# DeclStmt
     	;
 
-slist	:							# Empty
-	| bind '=' expr ';' slist				# Decl
-	| stmt slist						# Seq
+decl	: type (init (',' init)*) ';'
 	;
 
-expr	: INT                                                   # Int
-    	| BOOL    						# Bool
-    	| ID '(' (expr (',' expr)* )? ')'			# Call
-	| ID                                                    # Id
-	| '(' expr ')'                                          # Parens
-	| '!' expr                                              # Not
-	| expr op=('*' | '/' | '%') expr                        # Mul
-	| expr op=('+' | '-') expr                              # Add
-	| expr op=('==' | '!=' | '<' | '>' | '<=' | '>=') expr	# Rel
-	| expr '&&' expr                                        # And
-	| expr '||' expr                                        # Or
+init	: ID ('=' expr)?
 	;
 
-type	: ATYPE ;
+ref	: ID							# IdRef
+	| ref '[' expr ']'					# ArrayRef
+	;
 
-method  : type ID '(' (bind (',' bind)*)? ')' '{' slist '}' ;
+expr	: literal                                               # LiteralExpr
+    	| ID '(' (expr (',' expr)* )? ')'			# CallExpr
+	| 'new' type '[' expr ']'     				# NewExpr
+	| ref '=' expr 	    	      				# AssignmentExpr
+	| ref op=('++' | '--')					# PostExpr
+	| op=('++' | '--') ref					# PreExpr
+	| ref                                                   # RefExpr
+	| '(' expr ')'                                          # ParensExpr
+	| '!' expr                                              # NotExpr
+	| expr op=('*' | '/' | '%') expr                        # MulExpr
+	| expr op=('+' | '-') expr                              # AddExpr
+	| expr op=('==' | '!=' | '<' | '>' | '<=' | '>=') expr	# RelExpr
+	| expr '&&' expr                                        # AndExpr
+	| expr '||' expr                                        # OrExpr
+	;
+
+literal	: INT							# IntConst
+	| FLOAT							# FloatConst
+	| DOUBLE						# DoubleConst
+	| BOOLEAN						# BooleanConst
+	| CHAR							# CharConst
+	| STRING						# StringConst
+	;
+
+type	: ATYPE							# AtomicType
+	| type '[' ']'						# ArrayType
+	;
+
+method  : type ID '(' (bind (',' bind)*)? ')' '{' stmt* '}' ;
 
 bind	: type ID ;
 
@@ -50,9 +74,19 @@ GT	: '>' ;
 LE	: '<=' ;
 GE	: '>=' ;
 
-ATYPE	: 'void' | 'boolean' | 'int' ;
-BOOL    : 'true' | 'false' ;  // match booleans
+ATYPE	: 'void' | 'boolean' | 'int' | 'float' | 'double' | 'char' | 'String' ;
+BOOLEAN : 'true' | 'false' ;  // match booleans
 INT     : [0-9]+ ;        // match integer numbers
 ID      : [a-zA-Z_]+ ;    // match lower-case identifiers
+
+CHARLIT : [^\\] | '\\'[trn] ;
+
+CHAR    : '\'' CHARLIT '\'' ;
+STRING  : '"' CHARLIT* '"' ;
+
+FLOAT	: SIGN? (INT '.' INT? | INT? '.' INT) EXP? ;
+DOUBLE	: FLOAT 'd' ;
+SIGN	: '+' | '-' ;
+EXP	: ('e' | 'E') SIGN? INT ;
 
 WS      : [ \t\r\n]+ -> skip ; // skip spaces, tabs, newlines

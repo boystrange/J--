@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with J--. If not, see <http://www.gnu.org/licenses/>.
 
-// Copyright 2022 Luca Padovaniimport org.antlr.v4.runtime.*;
+// Copyright 2022 Luca Padovani
 
 public abstract class LogicExpr extends Expr {
     public int stack() {
