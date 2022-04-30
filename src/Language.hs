@@ -64,7 +64,7 @@ data Statement
   | Do Statement Expression
   | Return (Maybe Expression)
   | Block Statement
-  | Locals Type [(Id, Maybe Expression)]
+  | Local Type Id
   | Expression Expression
   | Seq Statement Statement
 

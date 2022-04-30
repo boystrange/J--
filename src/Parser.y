@@ -150,11 +150,10 @@ Statement
   : IFKW '(' Expression ')' Statement ElseOpt { If $3 $5 $6 }
   | WHILEKW '(' Expression ')' Statement { While $3 $5 }
   | DOKW Statement WHILEKW '(' Expression ')' { Do $2 $5 }
-  | FORKW '(' StatementOpt ';' TestOpt ';' StatementOpt ')' Statement
-    { Block $ Seq $3 $ While $5 $ Seq $9 $7 }
+  | FORKW '(' StatementOpt ';' TestOpt ';' StatementOpt ')' Statement { expandFor $3 $5 $7 $9 }
   | RETURNKW ExpressionOpt ';' { Return $2 }
   | Expression ';' { Expression $1 }
-  | Type InitNeList ';' { Locals $1 $2 }
+  | Type InitNeList ';' { expandLocals $1 $2 }
   | '{' StatementList '}' { Block $2 }
 
 StatementOpt
@@ -253,6 +252,15 @@ getPos (Token (AlexPn _ line col) _) = (line, col)
 
 lexwrap :: (Token -> Alex a) -> Alex a
 lexwrap = (alexMonadScan' >>=)
+
+expandLocals :: Type -> [(Id, Maybe Expression)] -> Statement
+expandLocals t = foldl Seq Empty . map aux
+  where
+    aux (x, Nothing) = Local t x
+    aux (x, Just expr) = Seq (Local t x) (Expression $ Binary ASSIGN (Ref (IdRef x)) expr)
+
+expandFor :: Statement -> Expression -> Statement -> Statement -> Statement
+expandFor init expr incr body = Block $ Seq init $ While expr $ Seq body incr
 
 happyError :: Token -> Alex a
 happyError (Token p t) = alexError' p ("parse error at token '" ++ show t ++ "'")

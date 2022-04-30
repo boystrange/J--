@@ -56,7 +56,7 @@ getEntry :: Id -> Checker Entry
 getEntry x = SymbolTable.get x <$> table <$> State.get
 
 getType :: Id -> Checker Type
-getType x = entryType <$> getEntry
+getType x = SymbolTable.entryType <$> getEntry x
 
 setEntry :: Id -> Entry -> Checker ()
 setEntry x entry = modifySymbolTable (SymbolTable.set x entry)
@@ -104,21 +104,13 @@ checkStmt rt (Seq stmt1 stmt2) = do
   -- if b1 == True then stmt2 is unreachable
   b2 <- checkStmt rt stmt2
   return $ b1 || b2
-checkStmt rt (Locals t inits) = do
-  forM_ inits (uncurry (checkInit t))
+checkStmt rt (Local t x) = do
+  newEntry x t
   return False
 checkStmt rt (Expression expr) = do
   t <- checkExpr expr
   -- if not Void emit warning
   return False
-
-checkInit :: Type -> Id -> Maybe Expression -> Checker ()
-checkInit t x Nothing = newEntry x t
-checkInit t x (Just expr) = do
-  newEntry x t
-  s <- checkExpr expr
-  checkType t s
-  initializeEntry x
 
 checkType :: Type -> Type -> Checker ()
 checkType et at | at `subtype` et = return () -- should emit code for conversion
@@ -129,11 +121,40 @@ checkExpr (Literal lit) = return $ AtomicType (typeOfLiteral lit)
 checkExpr (Call x exprs) = do
   t <- getType x
   case t of
-    Method rt ts -> do
+    MethodType rt ts -> do
       unless (length exprs == length ts) $ throw $ ErrorWrongNumberOfArguments x (length ts) (length exprs)
-      ats <- mapM checkExpr exprs
-      forM_ (zip ts ats) (uncurry checkType)
+      forM_ (zip exprs ts) (uncurry checkExprType)
+      return rt
     _ -> throw $ ErrorNotMethod x
+checkExpr (New t expr) = do
+  s <- checkExpr expr
+  checkType (AtomicType IntType) s
+  return $ ArrayType t
+checkExpr (Ref ref) = checkRef ref
+checkExpr (Unary op expr) = do
+  t <- checkExpr expr
+  checkUnary op t
+checkExpr (Binary op expr1 expr2) = do
+  t1 <- checkExpr expr1
+  t2 <- checkExpr expr2
+  checkBinary op t1 t2
+checkExpr (Cast t expr) = do
+  checkExprType expr t
+  return t
+
+checkRef :: Reference -> Checker Type
+checkRef = undefined
+
+checkUnary :: UnOp -> Type -> Checker Type
+checkUnary = undefined
+
+checkBinary :: BinOp -> Type -> Type -> Checker Type
+checkBinary = undefined
+
+checkExprType :: Expression -> Type -> Checker ()
+checkExprType expr t = do
+  s <- checkExpr expr
+  checkType t s
 
 checkMethod :: Method -> Checker ()
 checkMethod (Method t x args stmt) = do
