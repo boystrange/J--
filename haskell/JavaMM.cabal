@@ -23,7 +23,9 @@ executable j--
                      Parser,
                      Lexer,
                      Exceptions,
-                     Render
+                     Render,
+                     SymbolTable,
+                     Checker
   other-extensions:  CPP
 
   build-depends:     base >=4.9,

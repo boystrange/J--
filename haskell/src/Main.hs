@@ -19,9 +19,11 @@
 module Main (main) where
 
 import Atoms
+import Language
 import Render
 import Exceptions (MyException)
-import Parser (parseProgram)
+import Parser
+import Checker
 
 import System.Console.GetOpt
 import System.IO (stdout, stderr, hFlush, hPutStrLn)
@@ -45,7 +47,9 @@ main = do
   source <- if file == "-" then getContents else readFile file
   case parseProgram file source of
     Left msg -> printWarning msg
-    Right (methods, stmts) -> return ()
+    Right (methods, stmts) -> do
+      let stmt = foldr Seq Empty stmts
+      checkMethods (Method (AtomicType VoidType) (Id Somewhere "main") [] stmt : methods)
   -- where
   --   check :: FilePath -> [Flag] -> [ProcessDef] -> IO ()
   --   check file args pdefs = do

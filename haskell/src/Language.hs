@@ -27,13 +27,35 @@ data AtomicType
   | DoubleType
   | CharType
   | StringType
+  deriving Eq
 
 data Type
   = AtomicType AtomicType
   | ArrayType Type
   | MethodType Type [Type]
+  deriving Eq
 
-data Method = Method Type Id [(Type, Id)] Statement
+sizeOf :: Type -> Int
+sizeOf (AtomicType VoidType) = 0
+sizeOf (AtomicType DoubleType) = 2
+sizeOf (AtomicType _) = 1
+sizeOf (ArrayType _) = 1
+sizeOf (MethodType _ _) = 0
+
+union :: Type -> Type -> Type
+union t s | t `subtype` s = s
+          | s `subtype` t = t
+
+subtype :: Type -> Type -> Bool
+subtype (AtomicType CharType) (AtomicType IntType) = True
+subtype (AtomicType CharType) (AtomicType FloatType) = True
+subtype (AtomicType CharType) (AtomicType DoubleType) = True
+subtype (AtomicType IntType) (AtomicType FloatType) = True
+subtype (AtomicType IntType) (AtomicType DoubleType) = True
+subtype (AtomicType FloatType) (AtomicType DoubleType) = True
+subtype t s = t == s
+
+data Method = Method Type Id [(Id, Type)] Statement
 
 data Statement
   = Empty
@@ -41,9 +63,10 @@ data Statement
   | While Expression Statement
   | Do Statement Expression
   | Return (Maybe Expression)
-  | Block [Statement]
+  | Block Statement
   | Locals Type [(Id, Maybe Expression)]
   | Expression Expression
+  | Seq Statement Statement
 
 data Reference
   = IdRef Id
@@ -56,6 +79,7 @@ data Expression
   | Ref Reference
   | Unary UnOp Expression
   | Binary BinOp Expression Expression
+  | Cast Type Expression
 
 data BinOp
   = ASSIGN
@@ -89,3 +113,15 @@ data Literal
   | Double Double
   | Char Char
   | String String
+
+typeOfLiteral :: Literal -> AtomicType
+typeOfLiteral (Int _) = IntType
+typeOfLiteral (Boolean _) = BooleanType
+typeOfLiteral (Float _) = FloatType
+typeOfLiteral (Double _) = DoubleType
+typeOfLiteral (Char _) = CharType
+typeOfLiteral (String _) = StringType
+
+typeOfMethod :: Method -> (Id, Type)
+typeOfMethod (Method t x binds _) = (x, MethodType t (map snd binds))
+

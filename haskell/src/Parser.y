@@ -123,7 +123,7 @@ ArgNeList
   | Arg ',' ArgNeList { $1 : $3 }
 
 Arg
-  : Type Id { ($1, $2) }
+  : Type Id { ($2, $1) }
 
 -- TYPES
 
@@ -143,14 +143,15 @@ AtomicType
 -- STATEMENTS
 
 StatementList
-  : { [] }
-  | Statement StatementList { $1 : $2 }
+  : { Empty }
+  | Statement StatementList { Seq $1 $2 }
 
 Statement
   : IFKW '(' Expression ')' Statement ElseOpt { If $3 $5 $6 }
   | WHILEKW '(' Expression ')' Statement { While $3 $5 }
   | DOKW Statement WHILEKW '(' Expression ')' { Do $2 $5 }
-  | FORKW '(' StatementOpt ';' TestOpt ';' StatementOpt ')' Statement { Block [$3, While $5 (Block [$9, $7])] }
+  | FORKW '(' StatementOpt ';' TestOpt ';' StatementOpt ')' Statement
+    { Block $ Seq $3 $ While $5 $ Seq $9 $7 }
   | RETURNKW ExpressionOpt ';' { Return $2 }
   | Expression ';' { Expression $1 }
   | Type InitNeList ';' { Locals $1 $2 }
@@ -216,6 +217,7 @@ Expression
   | Expression '>=' Expression { Binary GE $1 $3 }
   | Expression '==' Expression { Binary Language.EQ $1 $3 }
   | Expression '!=' Expression { Binary NE $1 $3 }
+  | '(' Type ')' Expression %prec UNARY { Cast $2 $4 }
   | Ref '++' { Unary POSTINC (Ref $1) }
   | Ref '--' { Unary POSTDEC (Ref $1) }
   | '++' Ref { Unary PREINC (Ref $2) }
