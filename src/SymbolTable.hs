@@ -2,7 +2,7 @@
 module SymbolTable where
 
 import Atoms
-import Language
+import Type
 import Exceptions
 import Control.Exception (throw)
 

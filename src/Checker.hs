@@ -30,6 +30,7 @@ import Debug.Trace (traceM)
 
 import Common
 import Atoms
+import Type
 import Language
 import Exceptions
 import SymbolTable (SymbolTable, Entry)

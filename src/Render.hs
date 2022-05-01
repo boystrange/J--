@@ -25,6 +25,7 @@ module Render
 where
 
 import Atoms
+import Type
 import Language
 import Prelude hiding ((<>))
 import Prettyprinter

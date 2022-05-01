@@ -19,6 +19,7 @@ executable j--
 
   other-modules:     Common,
                      Atoms,
+                     Type,
                      Language,
                      Parser,
                      Lexer,

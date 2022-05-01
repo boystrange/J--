@@ -18,6 +18,7 @@
 module Exceptions where
 
 import Atoms
+import Type
 import Language
 import Render ()
 import Control.Exception (Exception)

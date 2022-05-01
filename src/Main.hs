@@ -19,6 +19,7 @@
 module Main (main) where
 
 import Atoms
+import Type
 import Language
 import Render
 import Exceptions (MyException)

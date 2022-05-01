@@ -22,6 +22,7 @@ module Parser (parseProgram) where
 
 import Lexer
 import Atoms
+import Type
 import Language
 
 import Data.Either (partitionEithers)
