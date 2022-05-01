@@ -254,18 +254,18 @@ getPos (Token (AlexPn _ line col) _) = (line, col)
 lexwrap :: (Token -> Alex a) -> Alex a
 lexwrap = (alexMonadScan' >>=)
 
-expandLocals :: Type -> [(Id, Maybe Expression)] -> Statement
+expandLocals :: Type -> [(Id, Maybe SourceExpression)] -> SourceStatement
 expandLocals t = foldl Seq Empty . map aux
   where
     aux (x, Nothing) = Local t x
     aux (x, Just expr) = Seq (Local t x) (Expression $ Assign (IdRef x) expr)
 
-expandFor :: Statement -> Expression -> Statement -> Statement -> Statement
+expandFor :: SourceStatement -> SourceExpression -> SourceStatement -> SourceStatement -> SourceStatement
 expandFor init expr incr body = Block $ Seq init $ While expr $ Seq body incr
 
 happyError :: Token -> Alex a
 happyError (Token p t) = alexError' p ("parse error at token '" ++ show t ++ "'")
 
-parseProgram :: FilePath -> String -> Either String ([Method], [Statement])
+parseProgram :: FilePath -> String -> Either String ([SourceMethod], [SourceStatement])
 parseProgram = runAlex' parse
 }

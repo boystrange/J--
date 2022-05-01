@@ -50,7 +50,8 @@ main = do
     Left msg -> printWarning msg
     Right (methods, stmts) -> do
       let stmt = foldr Seq Empty stmts
-      checkMethods (Method VoidType (Id Somewhere "main") [] stmt : methods)
+      methods' <- checkMethods (Method VoidType (Id Somewhere "main") [] stmt : methods)
+      putStrLn "OK"
   -- where
   --   check :: FilePath -> [Flag] -> [ProcessDef] -> IO ()
   --   check file args pdefs = do

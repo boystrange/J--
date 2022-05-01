@@ -20,33 +20,56 @@ module Language where
 import Atoms
 import Type
 
-data Method = Method Type Id [(Id, Type)] Statement
+data Method r = Method Type Id [(Id, Type)] (Statement r)
 
-data Statement
+data Statement r
   = Empty
-  | If Expression Statement Statement
-  | While Expression Statement
-  | Do Statement Expression
-  | Return (Maybe Expression)
-  | Block Statement
+  | If (Expression r) (Statement r) (Statement r)
+  | While (Expression r) (Statement r)
+  | Do (Statement r) (Expression r)
+  | Return (Maybe (Expression r))
+  | Block (Statement r)
   | Local Type Id
-  | Expression Expression
-  | Seq Statement Statement
+  | Expression (Expression r)
+  | Seq (Statement r) (Statement r)
 
 data Reference
   = IdRef Id
-  | ArrayRef Reference Expression
+  | ArrayRef Reference (Expression Reference)
 
-data Expression
+type Slot = Int
+
+data TypedReference
+  = TypedIdRef Id Type Slot
+  | TypedArrayRef TypedReference (Expression TypedReference)
+
+data Literal
+  = Int Int
+  | Boolean Bool
+  | Float Float
+  | Double Double
+  | Char Char
+  | String String
+
+data Expression r
   = Literal Literal
-  | Call Id [Expression]
-  | New Type Expression
-  | Assign Reference Expression
-  | Ref Reference
-  | Unary UnOp Expression
-  | Binary BinOp Expression Expression
-  | IncDec IncDecOp Reference
-  | Cast Type Expression
+  | Call Id [(Expression r)]
+  | New Type (Expression r)
+  | Assign r (Expression r)
+  | Ref r
+  | Unary UnOp (Expression r)
+  | Binary BinOp (Expression r) (Expression r)
+  | IncDec IncDecOp r
+  | Cast Type (Expression r)
+  | Conversion (Expression r) Type Type
+
+type SourceMethod     = Method Reference
+type SourceStatement  = Statement Reference
+type SourceExpression = Expression Reference
+
+type TypedMethod      = Method TypedReference
+type TypedStatement   = Statement TypedReference
+type TypedExpression  = Expression TypedReference
 
 data BinOp
   = ADD
@@ -67,6 +90,12 @@ data UnOp
   = NEG
   | POS
   | NOT
+
+data IncDecOp
+  = PREINC
+  | PREDEC
+  | POSTINC
+  | POSTDEC
 
 binary :: BinOp -> DataType -> Maybe DataType
 binary ADD t           | isNumeric t = Just t
@@ -98,20 +127,6 @@ incdec t        | isNumeric t = Just t
 incdec CharType = Just CharType
 incdec _        = Nothing
 
-data IncDecOp
-  = PREINC
-  | PREDEC
-  | POSTINC
-  | POSTDEC
-
-data Literal
-  = Int Int
-  | Boolean Bool
-  | Float Float
-  | Double Double
-  | Char Char
-  | String String
-
 typeOfLiteral :: Literal -> DataType
 typeOfLiteral (Int _) = IntType
 typeOfLiteral (Boolean _) = BooleanType
@@ -120,6 +135,5 @@ typeOfLiteral (Double _) = DoubleType
 typeOfLiteral (Char _) = CharType
 typeOfLiteral (String _) = StringType
 
-typeOfMethod :: Method -> (Id, Type)
+typeOfMethod :: Method r -> (Id, Type)
 typeOfMethod (Method t x binds _) = (x, MethodType t (map snd binds))
-

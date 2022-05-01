@@ -25,7 +25,7 @@ import Control.Monad.State.Lazy (StateT)
 import qualified Control.Monad.State.Lazy as State
 import Control.Monad (forM_, when, unless)
 import Control.Exception (throw)
-import Data.Maybe ( fromJust )
+import Data.Maybe (fromJust)
 import Debug.Trace (traceM)
 
 import Common
@@ -57,6 +57,9 @@ getEntry x = SymbolTable.get x <$> table <$> State.get
 getType :: Id -> Checker Type
 getType x = SymbolTable.entryType <$> getEntry x
 
+getSlot :: Id -> Checker Slot
+getSlot x = SymbolTable.entrySlot <$> getEntry x
+
 setEntry :: Id -> Entry -> Checker ()
 setEntry x entry = modifySymbolTable (SymbolTable.set x entry)
 
@@ -68,82 +71,91 @@ initializeEntry x = do
   entry <- getEntry x
   setEntry x (entry { SymbolTable.entryInit = True })
 
-checkStmt :: Type -> Statement -> Checker Bool
-checkStmt rt Empty = return False
+checkStmt :: Type -> SourceStatement -> Checker (Bool, TypedStatement)
+checkStmt rt Empty = return (False, Empty)
 checkStmt rt (If expr stmt1 stmt2) = do
-  t <- checkExpr expr
+  (t, expr') <- checkExpr expr
   checkType (DataType BooleanType) t
-  b1 <- checkStmt rt stmt1
-  b2 <- checkStmt rt stmt2
-  return $ b1 && b2
+  (b1, stmt1') <- checkStmt rt stmt1
+  (b2, stmt2') <- checkStmt rt stmt2
+  return (b1 && b2, If expr' stmt1' stmt2')
 checkStmt rt (While expr stmt) = do
-  t <- checkExpr expr
+  (t, expr') <- checkExpr expr
   checkType (DataType BooleanType) t
-  _ <- checkStmt rt stmt
-  return False
+  (_, stmt') <- checkStmt rt stmt
+  return (False, While expr' stmt')
 checkStmt rt (Do stmt expr) = do
-  b <- checkStmt rt stmt
-  t <- checkExpr expr
+  (b, stmt') <- checkStmt rt stmt
+  (t, expr') <- checkExpr expr
   checkType (DataType BooleanType) t
-  return b
+  return (b, Do stmt' expr')
 checkStmt rt (Return Nothing) = do
   checkType VoidType rt
-  return True
+  return (True, Return Nothing)
 checkStmt rt (Return (Just expr)) = do
-  t <- checkExpr expr
-  checkType rt t
-  return True
+  (t, expr') <- checkExpr expr
+  cast <- checkType rt t
+  return (True, Return (Just (cast expr')))
 checkStmt rt (Block stmt) = do
   pushScope
-  b <- checkStmt rt stmt
+  (b, stmt') <- checkStmt rt stmt
   popScope
-  return b
+  return (b, stmt')
 checkStmt rt (Seq stmt1 stmt2) = do
-  b1 <- checkStmt rt stmt1
+  (b1, stmt1') <- checkStmt rt stmt1
   -- if b1 == True then stmt2 is unreachable
-  b2 <- checkStmt rt stmt2
-  return $ b1 || b2
+  (b2, stmt2') <- checkStmt rt stmt2
+  return (b1 || b2, Seq stmt1' stmt2')
 checkStmt rt (Local t x) = do
   newEntry x t
-  return False
+  return (False, Empty)
 checkStmt rt (Expression expr) = do
-  t <- checkExpr expr
+  (t, expr') <- checkExpr expr
   -- if not Void emit warning
-  return False
+  return (False, Expression expr')
 
-checkType :: Type -> Type -> Checker ()
-checkType et at | at `subtype` et = return () -- should emit code for conversion
+conversion :: Type -> Type -> TypedExpression -> TypedExpression
+conversion s t expr | s == t = expr
+                    | otherwise = Conversion expr s t
+
+checkType :: Type -> Type -> Checker (TypedExpression -> TypedExpression)
+checkType et at | at `subtype` et = return (conversion at et)
 checkType et at = throw $ ErrorTypeMismatch et at
 
-checkExpr :: Expression -> Checker Type
-checkExpr (Literal lit) = return $ DataType (typeOfLiteral lit)
+checkExpr :: SourceExpression -> Checker (Type, TypedExpression)
+checkExpr (Literal lit) = return (DataType (typeOfLiteral lit), Literal lit)
 checkExpr (Call x exprs) = do
   t <- getType x
   (rt, ts) <- unpackMethodType x (length exprs) t
-  forM_ (zip exprs ts) (uncurry checkExprType)
-  return rt
+  exprs' <- mapM (uncurry checkExprType) (zip exprs ts)
+  return (rt, Call x exprs')
 checkExpr (New t expr) = do
-  s <- checkExpr expr
-  checkType (DataType IntType) s
-  return $ ArrayType t
-checkExpr (Ref ref) = checkRef ref
+  (s, expr') <- checkExpr expr
+  cast <- checkType (DataType IntType) s
+  return (ArrayType t, New t (cast expr'))
+checkExpr (Ref ref) = do
+  (t, ref') <- checkRef ref
+  return (t, Ref ref')
 checkExpr (Unary op expr) = do
-  t <- checkExpr expr
-  checkUnary op t
+  (t, expr') <- checkExpr expr
+  s <- checkUnary op t
+  return (s, Unary op expr')
 checkExpr (Binary op expr1 expr2) = do
-  t1 <- checkExpr expr1
-  t2 <- checkExpr expr2
-  checkBinary op t1 t2
+  (t1, expr1') <- checkExpr expr1
+  (t2, expr2') <- checkExpr expr2
+  t <- checkBinary op t1 t2
+  return (t, Binary op expr1' expr2')
 checkExpr (Assign ref expr) = do
-  t <- checkRef ref
-  checkExprType expr t
-  return t
+  (t, ref') <- checkRef ref
+  expr' <- checkExprType expr t
+  return (t, Assign ref' expr')
 checkExpr (IncDec op ref) = do
-  t <- checkRef ref
-  checkIncDec op t
+  (t, ref') <- checkRef ref
+  s <- checkIncDec op t
+  return (s, IncDec op ref')
 checkExpr (Cast t expr) = do
-  checkExprType expr t
-  return t
+  expr' <- checkExprType expr t
+  return (t, expr')
 
 unpackMethodType :: Id -> Int -> Type -> Checker (Type, [Type])
 unpackMethodType x n (MethodType rt ts) | n == length ts = return (rt, ts)
@@ -154,13 +166,16 @@ unpackArrayType :: Reference -> Type -> Checker Type
 unpackArrayType ref (ArrayType t) = return t
 unpackArrayType ref t = throw $ ErrorArrayExpected ref t
 
-checkRef :: Reference -> Checker Type
-checkRef (IdRef x) = getType x
+checkRef :: Reference -> Checker (Type, TypedReference)
+checkRef (IdRef x) = do
+  t <- getType x
+  n <- getSlot x
+  return (t, TypedIdRef x t n)
 checkRef (ArrayRef ref expr) = do
-  t <- checkRef ref
+  (t, ref') <- checkRef ref
   s <- unpackArrayType ref t
-  checkExprType expr (DataType IntType)
-  return s
+  expr' <- checkExprType expr (DataType IntType)
+  return (s, TypedArrayRef ref' expr')
 
 checkUnary :: UnOp -> Type -> Checker Type
 checkUnary op (DataType dt) | Just ds <- unary op dt = return (DataType ds)
@@ -175,26 +190,28 @@ checkIncDec :: IncDecOp -> Type -> Checker Type
 checkIncDec op (DataType dt) | Just ds <- incdec dt = return (DataType ds)
 checkIncDec op t = throw $ ErrorIncDecOperator op t
 
-checkExprType :: Expression -> Type -> Checker ()
+checkExprType :: SourceExpression -> Type -> Checker TypedExpression
 checkExprType expr t = do
-  s <- checkExpr expr
-  checkType t s
+  (s, expr') <- checkExpr expr
+  conv <- checkType t s
+  return (conv expr')
 
-checkMethod :: Method -> Checker ()
+checkMethod :: SourceMethod -> Checker TypedMethod
 checkMethod (Method t x args stmt) = do
   pushScope
   forM_ args (uncurry newEntry)
-  ret <- checkStmt t stmt
+  (ret, stmt') <- checkStmt t stmt
   when (not ret && t /= VoidType) $ throw $ ErrorMissingReturn x
   popScope
+  return $ Method t x args stmt'
 
-checkMethods :: [Method] -> IO ()
+checkMethods :: [SourceMethod] -> IO [TypedMethod]
 checkMethods methods = do
   putStrLn $ show $ length methods
   State.evalStateT aux (CheckerState { table = SymbolTable.empty })
   where
-    aux :: Checker ()
+    aux :: Checker [TypedMethod]
     aux = do
       pushScope
       forM_ methods (uncurry newEntry . typeOfMethod)
-      forM_ methods checkMethod
+      mapM checkMethod methods
