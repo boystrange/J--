@@ -96,6 +96,32 @@ instance Show Reference where
   show (IdRef x) = showWithPos x
   show (ArrayRef ref _) = show ref ++ "[...]"
 
+instance Show UnOp where
+  show NEG = "-"
+  show POS = "+"
+  show NOT = "!"
+
+instance Show BinOp where
+  show ADD = "+"
+  show SUB = "-"
+  show MUL = "*"
+  show DIV = "/"
+  show MOD = "%"
+  show JLT = "<"
+  show JLE = "<="
+  show JGT = ">"
+  show JGE = ">="
+  show JEQ = "=="
+  show JNE = "!="
+  show AND = "&&"
+  show OR  = "||"
+
+instance Show IncDecOp where
+  show PREINC = "++"
+  show PREDEC = "--"
+  show POSTINC = "++"
+  show POSTDEC = "--"
+  
 -- |Print a type.
 printType :: Type -> IO ()
 printType = PT.putDoc . prettyType

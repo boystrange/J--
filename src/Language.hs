@@ -51,8 +51,8 @@ sizeOf (DataType _) = 1
 sizeOf (ArrayType _) = 1
 sizeOf (MethodType _ _) = 0
 
-union :: Type -> Type -> Type
-union t s | t `subtype` s = s
+merge :: Type -> Type -> Type
+merge t s | t `subtype` s = s
           | s `subtype` t = t
 
 subdatatype :: DataType -> DataType -> Bool
@@ -118,31 +118,34 @@ data UnOp
   | NOT
 
 binary :: BinOp -> DataType -> Maybe DataType
-binary ADD IntType     = Just IntType
-binary ADD FloatType   = Just FloatType
-binary ADD DoubleType  = Just DoubleType
+binary ADD t           | isNumeric t = Just t
 binary ADD CharType    = Just IntType
 binary ADD StringType  = Just StringType
-binary SUB IntType     = Just IntType
-binary SUB FloatType   = Just FloatType
-binary SUB DoubleType  = Just DoubleType
+binary SUB t           | isNumeric t = Just t
 binary SUB CharType    = Just IntType
-binary MUL IntType     = Just IntType
-binary MUL FloatType   = Just FloatType
-binary MUL DoubleType  = Just DoubleType
-binary DIV IntType     = Just IntType
-binary DIV FloatType   = Just FloatType
-binary DIV DoubleType  = Just DoubleType
+binary MUL t           | isNumeric t = Just t
+binary DIV t           | isNumeric t = Just t
 binary MOD IntType     = Just IntType
-binary JLT t           = Just t
-binary JGT t           = Just t
-binary JLE t           = Just t
-binary JGE t           = Just t
-binary JEQ t           = Just t
-binary JNE t           = Just t
+binary JLT _           = Just BooleanType
+binary JGT _           = Just BooleanType
+binary JLE _           = Just BooleanType
+binary JGE _           = Just BooleanType
+binary JEQ _           = Just BooleanType
+binary JNE _           = Just BooleanType
 binary AND BooleanType = Just BooleanType
 binary OR  BooleanType = Just BooleanType
 binary _   _           = Nothing
+
+unary :: UnOp -> DataType -> Maybe DataType
+unary NEG t           | isNumeric t = Just t
+unary POS t           | isNumeric t = Just t
+unary NOT BooleanType = Just BooleanType
+unary _   _           = Nothing
+
+incdec :: DataType -> Maybe DataType
+incdec t        | isNumeric t = Just t
+incdec CharType = Just CharType
+incdec _        = Nothing
 
 data IncDecOp
   = PREINC

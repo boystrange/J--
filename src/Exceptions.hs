@@ -33,14 +33,20 @@ data MyException
   | ErrorMissingReturn Id
   | ErrorArrayExpected Reference Type
   | ErrorUnaryOperator UnOp Type
+  | ErrorBinaryOperator BinOp Type Type
+  | ErrorIncDecOperator IncDecOp Type
 
 instance Exception MyException
 
 instance Show MyException where
   show (ErrorSyntax msg) = msg
+  show (ErrorUnknownIdentifier x) = "unknown reference to " ++ showWithPos x
   show (ErrorMultipleDeclarations x) = "multiple declarations of " ++ showWithPos x
   show (ErrorWrongNumberOfArguments x en an) = "wrong number of arguments when calling " ++ showWithPos x ++", expected " ++ show en ++ ", actual " ++ show an
   show (ErrorNotMethod x t) = showWithPos x ++ " is not a method, it has type " ++ show t
   show (ErrorMissingReturn x) = "missing return statement for method " ++ showWithPos x
   show (ErrorTypeMismatch et at) = "expected type " ++ show et ++ ", actual type " ++ show at
   show (ErrorArrayExpected ref t) = show ref ++ " is not an array, it has type " ++ show t
+  show (ErrorUnaryOperator op t) = "unary operator " ++ show op ++ " cannot be applied to operand of type " ++ show t
+  show (ErrorBinaryOperator op t s) = "binary operator " ++ show op ++ " cannot be applied to operands of type " ++ show t ++ " and " ++ show s
+  show (ErrorIncDecOperator op t) = "unary operator " ++ show op ++ " cannot be applied to operand of type " ++ show t
