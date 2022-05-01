@@ -51,7 +51,7 @@ literal	: INT							# IntConst
 	| STRING						# StringConst
 	;
 
-type	: ATYPE							# AtomicType
+type	: ATYPE							# DataType
 	| type '[' ']'						# ArrayType
 	;
 

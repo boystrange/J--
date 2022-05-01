@@ -20,7 +20,7 @@ module Type where
 
 import Atoms
 
-data AtomicType
+data DataType
   = BooleanType
   | IntType
   | FloatType
@@ -28,4 +28,4 @@ data AtomicType
   | CharType
   | StringType
 
-data Type = Atomic AtomicType | Array Type
+data Type = Atomic DataType | Array Type

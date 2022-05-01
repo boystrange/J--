@@ -19,9 +19,8 @@ module Language where
 
 import Atoms
 
-data AtomicType
-  = VoidType
-  | BooleanType
+data DataType
+  = BooleanType
   | IntType
   | FloatType
   | DoubleType
@@ -30,15 +29,25 @@ data AtomicType
   deriving Eq
 
 data Type
-  = AtomicType AtomicType
+  = VoidType
+  | DataType DataType
   | ArrayType Type
   | MethodType Type [Type]
   deriving Eq
 
+isNumeric :: DataType -> Bool
+isNumeric IntType = True
+isNumeric FloatType = True
+isNumeric DoubleType = True
+isNumeric _ = False
+
+isEnumeration :: DataType -> Bool
+isEnumeration t = isNumeric t || t == CharType
+
 sizeOf :: Type -> Int
-sizeOf (AtomicType VoidType) = 0
-sizeOf (AtomicType DoubleType) = 2
-sizeOf (AtomicType _) = 1
+sizeOf VoidType = 0
+sizeOf (DataType DoubleType) = 2
+sizeOf (DataType _) = 1
 sizeOf (ArrayType _) = 1
 sizeOf (MethodType _ _) = 0
 
@@ -46,13 +55,18 @@ union :: Type -> Type -> Type
 union t s | t `subtype` s = s
           | s `subtype` t = t
 
+subdatatype :: DataType -> DataType -> Bool
+subdatatype CharType IntType = True
+subdatatype CharType FloatType = True
+subdatatype CharType DoubleType = True
+subdatatype IntType FloatType = True
+subdatatype IntType DoubleType = True
+subdatatype FloatType DoubleType = True
+subdatatype _ StringType = True
+subdatatype t s = t == s
+
 subtype :: Type -> Type -> Bool
-subtype (AtomicType CharType) (AtomicType IntType) = True
-subtype (AtomicType CharType) (AtomicType FloatType) = True
-subtype (AtomicType CharType) (AtomicType DoubleType) = True
-subtype (AtomicType IntType) (AtomicType FloatType) = True
-subtype (AtomicType IntType) (AtomicType DoubleType) = True
-subtype (AtomicType FloatType) (AtomicType DoubleType) = True
+subtype (DataType dt1) (DataType dt2) = subdatatype dt1 dt2
 subtype t s = t == s
 
 data Method = Method Type Id [(Id, Type)] Statement
@@ -76,24 +90,25 @@ data Expression
   = Literal Literal
   | Call Id [Expression]
   | New Type Expression
+  | Assign Reference Expression
   | Ref Reference
   | Unary UnOp Expression
   | Binary BinOp Expression Expression
+  | IncDec IncDecOp Reference
   | Cast Type Expression
 
 data BinOp
-  = ASSIGN
-  | ADD
+  = ADD
   | SUB
   | MUL
   | DIV
   | MOD
-  | LT
-  | LE
-  | GT
-  | GE
-  | EQ
-  | NE
+  | JLT
+  | JLE
+  | JGT
+  | JGE
+  | JEQ
+  | JNE
   | AND
   | OR
 
@@ -101,7 +116,36 @@ data UnOp
   = NEG
   | POS
   | NOT
-  | PREINC
+
+binary :: BinOp -> DataType -> Maybe DataType
+binary ADD IntType     = Just IntType
+binary ADD FloatType   = Just FloatType
+binary ADD DoubleType  = Just DoubleType
+binary ADD CharType    = Just IntType
+binary ADD StringType  = Just StringType
+binary SUB IntType     = Just IntType
+binary SUB FloatType   = Just FloatType
+binary SUB DoubleType  = Just DoubleType
+binary SUB CharType    = Just IntType
+binary MUL IntType     = Just IntType
+binary MUL FloatType   = Just FloatType
+binary MUL DoubleType  = Just DoubleType
+binary DIV IntType     = Just IntType
+binary DIV FloatType   = Just FloatType
+binary DIV DoubleType  = Just DoubleType
+binary MOD IntType     = Just IntType
+binary JLT t           = Just t
+binary JGT t           = Just t
+binary JLE t           = Just t
+binary JGE t           = Just t
+binary JEQ t           = Just t
+binary JNE t           = Just t
+binary AND BooleanType = Just BooleanType
+binary OR  BooleanType = Just BooleanType
+binary _   _           = Nothing
+
+data IncDecOp
+  = PREINC
   | PREDEC
   | POSTINC
   | POSTDEC
@@ -114,7 +158,7 @@ data Literal
   | Char Char
   | String String
 
-typeOfLiteral :: Literal -> AtomicType
+typeOfLiteral :: Literal -> DataType
 typeOfLiteral (Int _) = IntType
 typeOfLiteral (Boolean _) = BooleanType
 typeOfLiteral (Float _) = FloatType

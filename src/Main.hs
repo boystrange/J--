@@ -49,7 +49,7 @@ main = do
     Left msg -> printWarning msg
     Right (methods, stmts) -> do
       let stmt = foldr Seq Empty stmts
-      checkMethods (Method (AtomicType VoidType) (Id Somewhere "main") [] stmt : methods)
+      checkMethods (Method VoidType (Id Somewhere "main") [] stmt : methods)
   -- where
   --   check :: FilePath -> [Flag] -> [ProcessDef] -> IO ()
   --   check file args pdefs = do

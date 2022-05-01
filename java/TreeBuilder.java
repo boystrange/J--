@@ -36,7 +36,7 @@ public class TreeBuilder
     // TYPES //
     ///////////
 
-    public Type visitAtomicType(JavaMMParser.AtomicTypeContext ctxt) {
+    public Type visitDataType(JavaMMParser.DataTypeContext ctxt) {
 	String s = ctxt.ATYPE().getText();
 	if (s.equals("void")) return VoidType.instance;
 	else if (s.equals("boolean")) return BooleanType.instance;

@@ -32,6 +32,7 @@ import qualified Prettyprinter.Render.String as PR
 import qualified Prettyprinter.Render.Terminal as PT
 import qualified Data.Map as Map
 import qualified Data.Set as S
+import qualified Data.List as List
 
 -- PRETTY PRINTER COMPATIBILITY
 
@@ -77,8 +78,23 @@ sepembrace open close sep ds = embrace open close sep (map (<> space) (init ds) 
 prettyType :: Type -> Document
 prettyType = annotate (PT.colorDull PT.Cyan) . undefined
 
+instance Show DataType where
+  show BooleanType = "boolean"
+  show IntType = "int"
+  show FloatType = "float"
+  show DoubleType = "double"
+  show CharType = "char"
+  show StringType = "String"
+
 instance Show Type where
-  show = PR.renderString . layoutPretty defaultLayoutOptions . prettyType
+  show VoidType = "void"
+  show (DataType dt) = show dt
+  show (ArrayType t) = show t ++ "[]"
+  show (MethodType rt ts) = "<method>"
+
+instance Show Reference where
+  show (IdRef x) = showWithPos x
+  show (ArrayRef ref _) = show ref ++ "[...]"
 
 -- |Print a type.
 printType :: Type -> IO ()

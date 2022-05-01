@@ -128,12 +128,12 @@ Arg
 -- TYPES
 
 Type
-  : AtomicType { AtomicType $1 }
+  : VOIDKW { VoidType }
+  | DataType { DataType $1 }
   | Type '[' ']' { ArrayType $1 }
 
-AtomicType
-  : VOIDKW    { VoidType }
-  | BOOLEANKW { BooleanType }
+DataType
+  : BOOLEANKW { BooleanType }
   | INTKW     { IntType }
   | FLOATKW   { FloatType }
   | DOUBLEKW  { DoubleType }
@@ -202,7 +202,7 @@ Expression
   | NEWKW Type '[' Expression ']' { New $2 $4 }
   | Ref { Ref $1 }
   | '(' Expression ')' { $2 }
-  | Ref '=' Expression { Binary ASSIGN (Ref $1) $3 }
+  | Ref '=' Expression { Assign $1 $3 }
   | Expression '+' Expression { Binary ADD $1 $3 }
   | Expression '-' Expression { Binary SUB $1 $3 }
   | Expression '*' Expression { Binary MUL $1 $3 }
@@ -210,17 +210,17 @@ Expression
   | Expression '%' Expression { Binary MOD $1 $3 }
   | Expression '&&' Expression { Binary AND $1 $3 }
   | Expression '||' Expression { Binary OR $1 $3 }
-  | Expression '<' Expression { Binary Language.LT $1 $3 }
-  | Expression '>' Expression { Binary Language.GT $3 $1 }
-  | Expression '<=' Expression { Binary LE $1 $3 }
-  | Expression '>=' Expression { Binary GE $1 $3 }
-  | Expression '==' Expression { Binary Language.EQ $1 $3 }
-  | Expression '!=' Expression { Binary NE $1 $3 }
+  | Expression '<' Expression { Binary JLT $1 $3 }
+  | Expression '>' Expression { Binary JGT $3 $1 }
+  | Expression '<=' Expression { Binary JLE $1 $3 }
+  | Expression '>=' Expression { Binary JGE $1 $3 }
+  | Expression '==' Expression { Binary JEQ $1 $3 }
+  | Expression '!=' Expression { Binary JNE $1 $3 }
   | '(' Type ')' Expression %prec UNARY { Cast $2 $4 }
-  | Ref '++' { Unary POSTINC (Ref $1) }
-  | Ref '--' { Unary POSTDEC (Ref $1) }
-  | '++' Ref { Unary PREINC (Ref $2) }
-  | '--' Ref { Unary PREDEC (Ref $2) }
+  | Ref '++' { IncDec POSTINC $1 }
+  | Ref '--' { IncDec POSTDEC $1 }
+  | '++' Ref { IncDec PREINC $2 }
+  | '--' Ref { IncDec PREDEC $2 }
   | '-' Expression %prec UNARY { Unary NEG $2 }
   | '+' Expression %prec UNARY { Unary POS $2 }
   | '!' Expression { Unary NOT $2 }
@@ -257,7 +257,7 @@ expandLocals :: Type -> [(Id, Maybe Expression)] -> Statement
 expandLocals t = foldl Seq Empty . map aux
   where
     aux (x, Nothing) = Local t x
-    aux (x, Just expr) = Seq (Local t x) (Expression $ Binary ASSIGN (Ref (IdRef x)) expr)
+    aux (x, Just expr) = Seq (Local t x) (Expression $ Assign (IdRef x) expr)
 
 expandFor :: Statement -> Expression -> Statement -> Statement -> Statement
 expandFor init expr incr body = Block $ Seq init $ While expr $ Seq body incr

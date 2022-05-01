@@ -73,22 +73,22 @@ checkStmt :: Type -> Statement -> Checker Bool
 checkStmt rt Empty = return False
 checkStmt rt (If expr stmt1 stmt2) = do
   t <- checkExpr expr
-  checkType (AtomicType BooleanType) t
+  checkType (DataType BooleanType) t
   b1 <- checkStmt rt stmt1
   b2 <- checkStmt rt stmt2
   return $ b1 && b2
 checkStmt rt (While expr stmt) = do
   t <- checkExpr expr
-  checkType (AtomicType BooleanType) t
+  checkType (DataType BooleanType) t
   _ <- checkStmt rt stmt
   return False
 checkStmt rt (Do stmt expr) = do
   b <- checkStmt rt stmt
   t <- checkExpr expr
-  checkType (AtomicType BooleanType) t
+  checkType (DataType BooleanType) t
   return b
 checkStmt rt (Return Nothing) = do
-  checkType (AtomicType VoidType) rt
+  checkType VoidType rt
   return True
 checkStmt rt (Return (Just expr)) = do
   t <- checkExpr expr
@@ -117,18 +117,15 @@ checkType et at | at `subtype` et = return () -- should emit code for conversion
 checkType et at = throw $ ErrorTypeMismatch et at
 
 checkExpr :: Expression -> Checker Type
-checkExpr (Literal lit) = return $ AtomicType (typeOfLiteral lit)
+checkExpr (Literal lit) = return $ DataType (typeOfLiteral lit)
 checkExpr (Call x exprs) = do
   t <- getType x
-  case t of
-    MethodType rt ts -> do
-      unless (length exprs == length ts) $ throw $ ErrorWrongNumberOfArguments x (length ts) (length exprs)
-      forM_ (zip exprs ts) (uncurry checkExprType)
-      return rt
-    _ -> throw $ ErrorNotMethod x
+  (rt, ts) <- unpackMethodType x (length exprs) t
+  forM_ (zip exprs ts) (uncurry checkExprType)
+  return rt
 checkExpr (New t expr) = do
   s <- checkExpr expr
-  checkType (AtomicType IntType) s
+  checkType (DataType IntType) s
   return $ ArrayType t
 checkExpr (Ref ref) = checkRef ref
 checkExpr (Unary op expr) = do
@@ -138,15 +135,34 @@ checkExpr (Binary op expr1 expr2) = do
   t1 <- checkExpr expr1
   t2 <- checkExpr expr2
   checkBinary op t1 t2
+checkExpr (Assign ref expr) = undefined
+checkExpr (IncDec op ref) = undefined
 checkExpr (Cast t expr) = do
   checkExprType expr t
   return t
 
+unpackMethodType :: Id -> Int -> Type -> Checker (Type, [Type])
+unpackMethodType x n (MethodType rt ts) | n == length ts = return (rt, ts)
+                                        | otherwise = throw $ ErrorWrongNumberOfArguments x (length ts) n
+unpackMethodType x _ t = throw $ ErrorNotMethod x t
+
+unpackArrayType :: Reference -> Type -> Checker Type
+unpackArrayType ref (ArrayType t) = return t
+unpackArrayType ref t = throw $ ErrorArrayExpected ref t
+
 checkRef :: Reference -> Checker Type
-checkRef = undefined
+checkRef (IdRef x) = getType x
+checkRef (ArrayRef ref expr) = do
+  t <- checkRef ref
+  s <- unpackArrayType ref t
+  checkExprType expr (DataType IntType)
+  return s
 
 checkUnary :: UnOp -> Type -> Checker Type
-checkUnary = undefined
+checkUnary NOT t@(DataType BooleanType) = return t
+checkUnary NEG t@(DataType dt) | isNumeric dt = return t
+checkUnary POS t@(DataType dt) | isNumeric dt = return t
+checkUnary op t = throw $ ErrorUnaryOperator op t
 
 checkBinary :: BinOp -> Type -> Type -> Checker Type
 checkBinary = undefined
@@ -161,8 +177,7 @@ checkMethod (Method t x args stmt) = do
   pushScope
   forM_ args (uncurry addEntry)
   ret <- checkStmt t stmt
-  -- if ret == False and t != Void error
-  -- check for return
+  when (not ret && t /= VoidType) $ throw $ ErrorMissingReturn x
   popScope
 
 checkMethods :: [Method] -> IO ()
