@@ -21,6 +21,7 @@ module Main (main) where
 import Atoms
 import Type
 import Language
+import SourceLanguage
 import Render
 import Exceptions (MyException)
 import Parser

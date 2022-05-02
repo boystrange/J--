@@ -21,6 +21,8 @@ executable j--
                      Atoms,
                      Type,
                      Language,
+                     SourceLanguage,
+                     TypedLanguage,
                      Parser,
                      Lexer,
                      Exceptions,

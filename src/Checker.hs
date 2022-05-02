@@ -17,21 +17,18 @@
 
 module Checker (checkMethods) where
 
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.Set (Set)
-import qualified Data.Set as Set
 import Control.Monad.State.Lazy (StateT)
 import qualified Control.Monad.State.Lazy as State
 import Control.Monad (forM_, when, unless)
 import Control.Exception (throw)
-import Data.Maybe (fromJust)
 import Debug.Trace (traceM)
 
 import Common
 import Atoms
 import Type
 import Language
+import SourceLanguage
+import qualified TypedLanguage as Typed
 import Exceptions
 import SymbolTable (SymbolTable, Entry)
 import qualified SymbolTable
@@ -71,31 +68,28 @@ initializeEntry x = do
   entry <- getEntry x
   setEntry x (entry { SymbolTable.entryInit = True })
 
-checkStmt :: Type -> SourceStatement -> Checker (Bool, TypedStatement)
-checkStmt rt Empty = return (False, Empty)
+checkStmt :: Type -> Statement -> Checker (Bool, Typed.Statement)
+checkStmt rt Empty = return (False, Typed.Empty)
 checkStmt rt (If expr stmt1 stmt2) = do
-  (t, expr') <- checkExpr expr
-  checkType (DataType BooleanType) t
+  prop <- checkProp expr
   (b1, stmt1') <- checkStmt rt stmt1
   (b2, stmt2') <- checkStmt rt stmt2
-  return (b1 && b2, If expr' stmt1' stmt2')
+  return (b1 && b2, Typed.If prop stmt1' stmt2')
 checkStmt rt (While expr stmt) = do
-  (t, expr') <- checkExpr expr
-  checkType (DataType BooleanType) t
+  prop <- checkProp expr
   (_, stmt') <- checkStmt rt stmt
-  return (False, While expr' stmt')
+  return (False, Typed.While prop stmt')
 checkStmt rt (Do stmt expr) = do
   (b, stmt') <- checkStmt rt stmt
-  (t, expr') <- checkExpr expr
-  checkType (DataType BooleanType) t
-  return (b, Do stmt' expr')
+  prop <- checkProp expr
+  return (b, Typed.Do stmt' prop)
 checkStmt rt (Return Nothing) = do
   checkType VoidType rt
-  return (True, Return Nothing)
+  return (True, Typed.Return Nothing)
 checkStmt rt (Return (Just expr)) = do
   (t, expr') <- checkExpr expr
   cast <- checkType rt t
-  return (True, Return (Just (cast expr')))
+  return (True, Typed.Return (Just (cast expr')))
 checkStmt rt (Block stmt) = do
   pushScope
   (b, stmt') <- checkStmt rt stmt
@@ -105,57 +99,78 @@ checkStmt rt (Seq stmt1 stmt2) = do
   (b1, stmt1') <- checkStmt rt stmt1
   -- if b1 == True then stmt2 is unreachable
   (b2, stmt2') <- checkStmt rt stmt2
-  return (b1 || b2, Seq stmt1' stmt2')
+  return (b1 || b2, Typed.Seq stmt1' stmt2')
 checkStmt rt (Local t x) = do
   newEntry x t
-  return (False, Empty)
-checkStmt rt (Expression expr) = do
+  return (False, Typed.Empty)
+checkStmt rt (Ignore expr) = do
   (t, expr') <- checkExpr expr
-  -- if not Void emit warning
-  return (False, Expression expr')
+  return (False, Typed.Expression expr')
 
-conversion :: Type -> Type -> TypedExpression -> TypedExpression
-conversion s t expr | s == t = expr
-                    | otherwise = Conversion expr s t
+conversion :: Type -> Type -> Typed.Expression -> Typed.Expression
+conversion s t | s == t = id
+conversion (DataType s) (DataType t) = Typed.Conversion s t
 
-checkType :: Type -> Type -> Checker (TypedExpression -> TypedExpression)
+checkType :: Type -> Type -> Checker (Typed.Expression -> Typed.Expression)
 checkType et at | at `subtype` et = return (conversion at et)
 checkType et at = throw $ ErrorTypeMismatch et at
 
-checkExpr :: SourceExpression -> Checker (Type, TypedExpression)
-checkExpr (Literal lit) = return (DataType (typeOfLiteral lit), Literal lit)
+checkExpr :: Expression -> Checker (Type, Typed.Expression)
+checkExpr (Literal lit) = return (DataType (typeOfLiteral lit), Typed.Literal lit)
 checkExpr (Call x exprs) = do
   t <- getType x
   (rt, ts) <- unpackMethodType x (length exprs) t
   exprs' <- mapM (uncurry checkExprType) (zip exprs ts)
-  return (rt, Call x exprs')
+  return (rt, Typed.Call (MethodType rt ts) x exprs')
 checkExpr (New t expr) = do
   (s, expr') <- checkExpr expr
   cast <- checkType (DataType IntType) s
-  return (ArrayType t, New t (cast expr'))
+  return (ArrayType t, Typed.New t (cast expr'))
 checkExpr (Ref ref) = do
   (t, ref') <- checkRef ref
-  return (t, Ref ref')
+  return (t, Typed.Ref ref')
 checkExpr (Unary op expr) = do
   (t, expr') <- checkExpr expr
   s <- checkUnary op t
-  return (s, Unary op expr')
+  return (s, Typed.Unary s op expr')
 checkExpr (Binary op expr1 expr2) = do
   (t1, expr1') <- checkExpr expr1
   (t2, expr2') <- checkExpr expr2
   t <- checkBinary op t1 t2
-  return (t, Binary op expr1' expr2')
+  return (t, Typed.Binary t op expr1' expr2')
 checkExpr (Assign ref expr) = do
   (t, ref') <- checkRef ref
   expr' <- checkExprType expr t
-  return (t, Assign ref' expr')
+  return (t, Typed.Assign ref' expr')
 checkExpr (IncDec op ref) = do
   (t, ref') <- checkRef ref
   s <- checkIncDec op t
-  return (s, IncDec op ref')
+  return (s, Typed.IncDec s op ref')
 checkExpr (Cast t expr) = do
-  expr' <- checkExprType expr t
+  expr' <- checkExprType expr t -- cast != subtyping
   return (t, expr')
+checkExpr expr = do
+  prop <- checkProp expr
+  return (DataType BooleanType, Typed.FromProposition prop)
+
+checkProp :: Expression -> Checker Typed.Proposition
+checkProp (Literal (Boolean True)) = return Typed.TrueProp
+checkProp (Literal (Boolean False)) = return Typed.FalseProp
+checkProp (Rel op expr1 expr2) = do
+  (t1, expr1') <- checkExpr expr1
+  (t2, expr2') <- checkExpr expr2
+  t <- checkRel op t1 t2
+  return $ Typed.Rel t op expr1' expr2'
+checkProp (And prop1 prop2) = do
+  prop1' <- checkProp prop1
+  prop2' <- checkProp prop2
+  return $ Typed.And prop1' prop2'
+checkProp (Or prop1 prop2) = do
+  prop1' <- checkProp prop1
+  prop2' <- checkProp prop2
+  return $ Typed.Or prop1' prop2'
+checkProp (Not prop) = Typed.Not <$> checkProp prop
+checkProp expr = Typed.FromExpression <$> checkExprType expr (DataType BooleanType)
 
 unpackMethodType :: Id -> Int -> Type -> Checker (Type, [Type])
 unpackMethodType x n (MethodType rt ts) | n == length ts = return (rt, ts)
@@ -166,16 +181,16 @@ unpackArrayType :: Reference -> Type -> Checker Type
 unpackArrayType ref (ArrayType t) = return t
 unpackArrayType ref t = throw $ ErrorArrayExpected ref t
 
-checkRef :: Reference -> Checker (Type, TypedReference)
+checkRef :: Reference -> Checker (Type, Typed.Reference)
 checkRef (IdRef x) = do
   t <- getType x
   n <- getSlot x
-  return (t, TypedIdRef x t n)
+  return (t, Typed.IdRef t n x)
 checkRef (ArrayRef ref expr) = do
   (t, ref') <- checkRef ref
   s <- unpackArrayType ref t
   expr' <- checkExprType expr (DataType IntType)
-  return (s, TypedArrayRef ref' expr')
+  return (s, Typed.ArrayRef s ref' expr')
 
 checkUnary :: UnOp -> Type -> Checker Type
 checkUnary op (DataType dt) | Just ds <- unary op dt = return (DataType ds)
@@ -183,34 +198,38 @@ checkUnary op t = throw $ ErrorUnaryOperator op t
 
 checkBinary :: BinOp -> Type -> Type -> Checker Type
 checkBinary op t1 t2 | DataType dt <- merge t1 t2
-                     , Just dt <- binary op dt = return (DataType dt)
+                     , Just ds <- binary op dt = return (DataType ds)
 checkBinary op t1 t2 = throw $ ErrorBinaryOperator op t1 t2
+
+checkRel :: RelOp -> Type -> Type -> Checker Type
+checkRel op t s | DataType dt <- merge t s = return (DataType dt)
+checkRel op t s = throw $ ErrorBinaryRelation op t s
 
 checkIncDec :: IncDecOp -> Type -> Checker Type
 checkIncDec op (DataType dt) | Just ds <- incdec dt = return (DataType ds)
 checkIncDec op t = throw $ ErrorIncDecOperator op t
 
-checkExprType :: SourceExpression -> Type -> Checker TypedExpression
+checkExprType :: Expression -> Type -> Checker Typed.Expression
 checkExprType expr t = do
   (s, expr') <- checkExpr expr
   conv <- checkType t s
   return (conv expr')
 
-checkMethod :: SourceMethod -> Checker TypedMethod
+checkMethod :: Method -> Checker Typed.Method
 checkMethod (Method t x args stmt) = do
   pushScope
   forM_ args (uncurry newEntry)
   (ret, stmt') <- checkStmt t stmt
   when (not ret && t /= VoidType) $ throw $ ErrorMissingReturn x
   popScope
-  return $ Method t x args stmt'
+  return $ Typed.Method t x args stmt'
 
-checkMethods :: [SourceMethod] -> IO [TypedMethod]
+checkMethods :: [Method] -> IO [Typed.Method]
 checkMethods methods = do
   putStrLn $ show $ length methods
   State.evalStateT aux (CheckerState { table = SymbolTable.empty })
   where
-    aux :: Checker [TypedMethod]
+    aux :: Checker [Typed.Method]
     aux = do
       pushScope
       forM_ methods (uncurry newEntry . typeOfMethod)

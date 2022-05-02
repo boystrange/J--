@@ -20,6 +20,7 @@ module Exceptions where
 import Atoms
 import Type
 import Language
+import SourceLanguage
 import Render ()
 import Control.Exception (Exception)
 
@@ -35,6 +36,7 @@ data MyException
   | ErrorArrayExpected Reference Type
   | ErrorUnaryOperator UnOp Type
   | ErrorBinaryOperator BinOp Type Type
+  | ErrorBinaryRelation RelOp Type Type
   | ErrorIncDecOperator IncDecOp Type
 
 instance Exception MyException
@@ -50,4 +52,5 @@ instance Show MyException where
   show (ErrorArrayExpected ref t) = show ref ++ " is not an array, it has type " ++ show t
   show (ErrorUnaryOperator op t) = "unary operator " ++ show op ++ " cannot be applied to operand of type " ++ show t
   show (ErrorBinaryOperator op t s) = "binary operator " ++ show op ++ " cannot be applied to operands of type " ++ show t ++ " and " ++ show s
+  show (ErrorBinaryRelation op t s) = "relation operator " ++ show op ++ " cannot compare operands of type " ++ show t ++ " and " ++ show s
   show (ErrorIncDecOperator op t) = "unary operator " ++ show op ++ " cannot be applied to operand of type " ++ show t

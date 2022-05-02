@@ -27,6 +27,7 @@ where
 import Atoms
 import Type
 import Language
+import SourceLanguage
 import Prelude hiding ((<>))
 import Prettyprinter
 import qualified Prettyprinter.Render.String as PR
@@ -100,7 +101,6 @@ instance Show Reference where
 instance Show UnOp where
   show NEG = "-"
   show POS = "+"
-  show NOT = "!"
 
 instance Show BinOp where
   show ADD = "+"
@@ -108,14 +108,14 @@ instance Show BinOp where
   show MUL = "*"
   show DIV = "/"
   show MOD = "%"
+
+instance Show RelOp where
   show JLT = "<"
   show JLE = "<="
   show JGT = ">"
   show JGE = ">="
   show JEQ = "=="
   show JNE = "!="
-  show AND = "&&"
-  show OR  = "||"
 
 instance Show IncDecOp where
   show PREINC = "++"

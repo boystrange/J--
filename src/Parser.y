@@ -24,6 +24,7 @@ import Lexer
 import Atoms
 import Type
 import Language
+import SourceLanguage
 
 import Data.Either (partitionEithers)
 import Control.Exception
@@ -151,9 +152,9 @@ Statement
   : IFKW '(' Expression ')' Statement ElseOpt { If $3 $5 $6 }
   | WHILEKW '(' Expression ')' Statement { While $3 $5 }
   | DOKW Statement WHILEKW '(' Expression ')' { Do $2 $5 }
-  | FORKW '(' StatementOpt ';' TestOpt ';' StatementOpt ')' Statement { expandFor $3 $5 $7 $9 }
+  | FORKW '(' StatementOpt ';' ExpressionOpt ';' StatementOpt ')' Statement { expandFor $3 $5 $7 $9 }
   | RETURNKW ExpressionOpt ';' { Return $2 }
-  | Expression ';' { Expression $1 }
+  | Expression ';' { Ignore $1 }
   | Type InitNeList ';' { expandLocals $1 $2 }
   | '{' StatementList '}' { Block $2 }
 
@@ -181,10 +182,6 @@ Ref
 
 -- EXPRESSIONS
 
-TestOpt
-  : { Literal (Boolean True) }
-  | Expression { $1 }
-
 ExpressionOpt
   : { Nothing }
   | Expression { Just $1 }
@@ -209,14 +206,6 @@ Expression
   | Expression '*' Expression { Binary MUL $1 $3 }
   | Expression '/' Expression { Binary DIV $1 $3 }
   | Expression '%' Expression { Binary MOD $1 $3 }
-  | Expression '&&' Expression { Binary AND $1 $3 }
-  | Expression '||' Expression { Binary OR $1 $3 }
-  | Expression '<' Expression { Binary JLT $1 $3 }
-  | Expression '>' Expression { Binary JGT $3 $1 }
-  | Expression '<=' Expression { Binary JLE $1 $3 }
-  | Expression '>=' Expression { Binary JGE $1 $3 }
-  | Expression '==' Expression { Binary JEQ $1 $3 }
-  | Expression '!=' Expression { Binary JNE $1 $3 }
   | '(' Type ')' Expression %prec UNARY { Cast $2 $4 }
   | Ref '++' { IncDec POSTINC $1 }
   | Ref '--' { IncDec POSTDEC $1 }
@@ -224,19 +213,24 @@ Expression
   | '--' Ref { IncDec PREDEC $2 }
   | '-' Expression %prec UNARY { Unary NEG $2 }
   | '+' Expression %prec UNARY { Unary POS $2 }
-  | '!' Expression { Unary NOT $2 }
+  | Expression '<' Expression { Rel JLT $1 $3 }
+  | Expression '>' Expression { Rel JGT $3 $1 }
+  | Expression '<=' Expression { Rel JLE $1 $3 }
+  | Expression '>=' Expression { Rel JGE $1 $3 }
+  | Expression '==' Expression { Rel JEQ $1 $3 }
+  | Expression '!=' Expression { Rel JNE $1 $3 }
+  | Expression '&&' Expression { And $1 $3 }
+  | Expression '||' Expression { Or $1 $3 }
+  | '!' Expression { Not $2 }
 
 Literal
-  : INT { Int (read (getId $1)) }
+  : TRUEKW { Boolean True }
+  | FALSEKW { Boolean False }
+  | INT { Int (read (getId $1)) }
   | FLOAT { Float (read (getId $1)) }
   | DOUBLE { Double (read (getId $1)) }
-  | Boolean { Boolean $1 }
   | CHAR { Char $ (getId $1)!!0 }
   | STRING { String (getId $1) }
-
-Boolean
-  : TRUEKW { True }
-  | FALSEKW { False }
 
 -- -- IDENTIFIERS
 
@@ -254,18 +248,22 @@ getPos (Token (AlexPn _ line col) _) = (line, col)
 lexwrap :: (Token -> Alex a) -> Alex a
 lexwrap = (alexMonadScan' >>=)
 
-expandLocals :: Type -> [(Id, Maybe SourceExpression)] -> SourceStatement
+expandLocals :: Type -> [(Id, Maybe Expression)] -> Statement
 expandLocals t = foldl Seq Empty . map aux
   where
     aux (x, Nothing) = Local t x
-    aux (x, Just expr) = Seq (Local t x) (Expression $ Assign (IdRef x) expr)
+    aux (x, Just expr) = Seq (Local t x) (Ignore $ Assign (IdRef x) expr)
 
-expandFor :: SourceStatement -> SourceExpression -> SourceStatement -> SourceStatement -> SourceStatement
-expandFor init expr incr body = Block $ Seq init $ While expr $ Seq body incr
+expandFor :: Statement -> Maybe Expression -> Statement -> Statement -> Statement
+expandFor init me incr body = Block $ Seq init $ While test $ Seq body incr
+  where
+    test = case me of
+             Nothing -> Literal (Boolean True)
+             Just e -> e
 
 happyError :: Token -> Alex a
 happyError (Token p t) = alexError' p ("parse error at token '" ++ show t ++ "'")
 
-parseProgram :: FilePath -> String -> Either String ([SourceMethod], [SourceStatement])
+parseProgram :: FilePath -> String -> Either String ([Method], [Statement])
 parseProgram = runAlex' parse
 }

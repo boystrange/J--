@@ -49,6 +49,10 @@ sizeOf (DataType _) = 1
 sizeOf (ArrayType _) = 1
 sizeOf (MethodType _ _) = 0
 
+double :: Type -> Bool
+double (DataType DoubleType) = True
+double _ = False
+
 merge :: Type -> Type -> Type
 merge t s | t `subtype` s = s
           | s `subtype` t = t

@@ -43,3 +43,5 @@ instance Eq Id where
 -- |Two identifiers are ordered regardless of the position in which they occur.
 instance Ord Id where
   compare u v = compare (identifierText u) (identifierText v)
+
+type Slot = Int
