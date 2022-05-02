@@ -25,7 +25,8 @@ import SourceLanguage
 import Render
 import Exceptions (MyException)
 import Parser
-import Checker
+import qualified Checker
+import qualified Compiler
 
 import System.Console.GetOpt
 import System.IO (stdout, stderr, hFlush, hPutStrLn)
@@ -51,8 +52,10 @@ main = do
     Left msg -> printWarning msg
     Right (methods, stmts) -> do
       let stmt = foldr Seq Empty stmts
-      methods' <- checkMethods (Method VoidType (Id Somewhere "main") [] stmt : methods)
-      putStrLn "OK"
+      methods <- Checker.checkMethods (Method VoidType (Id Somewhere "main") [] stmt : methods)
+      code <- Compiler.compileMethods methods
+      forM_ code putStrLn
+
   -- where
   --   check :: FilePath -> [Flag] -> [ProcessDef] -> IO ()
   --   check file args pdefs = do

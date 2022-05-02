@@ -122,7 +122,10 @@ instance Show IncDecOp where
   show PREDEC = "--"
   show POSTINC = "++"
   show POSTDEC = "--"
-  
+
+instance Show Label where
+    show (L n) = "L" ++ show n
+
 -- |Print a type.
 printType :: Type -> IO ()
 printType = PT.putDoc . prettyType

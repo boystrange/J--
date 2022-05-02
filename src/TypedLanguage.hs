@@ -36,8 +36,8 @@ data Statement
   | If Proposition Statement Statement
   | While Proposition Statement
   | Do Statement Proposition
-  | Return (Maybe Expression)
+  | Return Type (Maybe Expression)
   | Expression Expression
   | Seq Statement Statement
 
-data Method = Method Type Id [(Id, Type)] Statement
+data Method = Method Type Id Statement

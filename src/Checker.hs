@@ -85,11 +85,11 @@ checkStmt rt (Do stmt expr) = do
   return (b, Typed.Do stmt' prop)
 checkStmt rt (Return Nothing) = do
   checkType VoidType rt
-  return (True, Typed.Return Nothing)
+  return (True, Typed.Return VoidType Nothing)
 checkStmt rt (Return (Just expr)) = do
   (t, expr') <- checkExpr expr
   cast <- checkType rt t
-  return (True, Typed.Return (Just (cast expr')))
+  return (True, Typed.Return t (Just (cast expr')))
 checkStmt rt (Block stmt) = do
   pushScope
   (b, stmt') <- checkStmt rt stmt
@@ -216,13 +216,13 @@ checkExprType expr t = do
   return (conv expr')
 
 checkMethod :: Method -> Checker Typed.Method
-checkMethod (Method t x args stmt) = do
+checkMethod method@(Method t x args stmt) = do
   pushScope
   forM_ args (uncurry newEntry)
   (ret, stmt') <- checkStmt t stmt
   when (not ret && t /= VoidType) $ throw $ ErrorMissingReturn x
   popScope
-  return $ Typed.Method t x args stmt'
+  return $ Typed.Method (snd (typeOfMethod method)) x stmt'
 
 checkMethods :: [Method] -> IO [Typed.Method]
 checkMethods methods = do

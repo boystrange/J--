@@ -28,7 +28,9 @@ executable j--
                      Exceptions,
                      Render,
                      SymbolTable,
-                     Checker
+                     Checker,
+                     Jasmin,
+                     Compiler
   other-extensions:  CPP
 
   build-depends:     base >=4.9,

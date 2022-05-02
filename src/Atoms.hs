@@ -45,3 +45,10 @@ instance Ord Id where
   compare u v = compare (identifierText u) (identifierText v)
 
 type Slot = Int
+
+data Label = L Int
+    deriving Eq
+
+instance Enum Label where
+  toEnum = L
+  fromEnum (L n) = n
