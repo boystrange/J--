@@ -4,5 +4,22 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.exclude": {
+			"java/**/*.class": true,
+			"java/**/*.interp": true,
+			"java/**/*.jar": true,
+			"java/**/*.tokens": true,
+			"java/**/JavaMMBaseVisitor.java": true,
+			"java/**/JavaMMLexer.java": true,
+			"java/**/JavaMMParser.java": true,
+			"java/**/JavaMMVisitor.java": true,
+			"**/*~": true,
+			"**/.stack-work": true,
+			"**/*.lock": true,
+			"**/Parser.hs": true,
+			"**/Parser.info": true,
+			"**/Lexer.hs": true
+		}
+	}
 }
