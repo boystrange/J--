@@ -1,8 +1,0 @@
-*.class
-*.interp
-*.jar
-*.tokens
-JavaMMBaseVisitor.java
-JavaMMLexer.java
-JavaMMParser.java
-JavaMMVisitor.java
