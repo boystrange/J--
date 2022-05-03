@@ -47,10 +47,10 @@ compileRef (ArrayRef t r expr) = do
     emit $ Jasmin.aload t
 
 jumpIf :: Type -> RelOp -> Label -> Compiler ()
-jumpIf (DataType FloatType) op tt = do
+jumpIf (BaseType FloatType) op tt = do
     emit "fcmpl"
     emit $ Jasmin.zif op tt
-jumpIf (DataType DoubleType) op tt = do
+jumpIf (BaseType DoubleType) op tt = do
     emit "dcmpl"
     emit $ Jasmin.zif op tt
 jumpIf t op tt = emit $ Jasmin.ifcmp t op tt

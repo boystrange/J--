@@ -47,7 +47,7 @@ data UnOp = NEG | POS
 
 data IncDecOp = PREINC | PREDEC | POSTINC | POSTDEC
 
-binary :: BinOp -> DataType -> Maybe DataType
+binary :: BinOp -> BaseType -> Maybe BaseType
 binary ADD t          | isNumeric t = Just t
 binary ADD CharType   = Just IntType
 binary ADD StringType = Just StringType
@@ -58,17 +58,17 @@ binary DIV t          | isNumeric t = Just t
 binary MOD IntType    = Just IntType
 binary _   _          = Nothing
 
-unary :: UnOp -> DataType -> Maybe DataType
+unary :: UnOp -> BaseType -> Maybe BaseType
 unary NEG t           | isNumeric t = Just t
 unary POS t           | isNumeric t = Just t
 unary _   _           = Nothing
 
-incdec :: DataType -> Maybe DataType
+incdec :: BaseType -> Maybe BaseType
 incdec t        | isNumeric t = Just t
 incdec CharType = Just CharType
 incdec _        = Nothing
 
-typeOfLiteral :: Literal -> DataType
+typeOfLiteral :: Literal -> BaseType
 typeOfLiteral (Int _) = IntType
 typeOfLiteral (Boolean _) = BooleanType
 typeOfLiteral (Float _) = FloatType

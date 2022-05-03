@@ -111,14 +111,14 @@ checkStmt rt (Ignore expr) = do
 
 conversion :: Type -> Type -> Typed.Expression -> Typed.Expression
 conversion s t | s == t = id
-conversion (DataType s) (DataType t) = Typed.Conversion s t
+conversion (BaseType s) (BaseType t) = Typed.Conversion s t
 
 checkType :: Type -> Type -> Checker (Typed.Expression -> Typed.Expression)
 checkType et at | at `subtype` et = return (conversion at et)
 checkType et at = throw $ ErrorTypeMismatch et at
 
 checkExpr :: Expression -> Checker (Type, Typed.Expression)
-checkExpr (Literal lit) = return (DataType (typeOfLiteral lit), Typed.Literal lit)
+checkExpr (Literal lit) = return (BaseType (typeOfLiteral lit), Typed.Literal lit)
 checkExpr (Call x exprs) = do
   t <- getType x
   (rt, ts) <- unpackMethodType x (length exprs) t
@@ -126,7 +126,7 @@ checkExpr (Call x exprs) = do
   return (rt, Typed.Call (MethodType rt ts) x exprs')
 checkExpr (New t expr) = do
   (s, expr') <- checkExpr expr
-  cast <- checkType (DataType IntType) s
+  cast <- checkType (BaseType IntType) s
   return (ArrayType t, Typed.New t (cast expr'))
 checkExpr (Ref ref) = do
   (t, ref') <- checkRef ref
@@ -153,7 +153,7 @@ checkExpr (Cast t expr) = do
   return (t, expr')
 checkExpr expr = do
   prop <- checkProp expr
-  return (DataType BooleanType, Typed.FromProposition prop)
+  return (BaseType BooleanType, Typed.FromProposition prop)
 
 checkProp :: Expression -> Checker Typed.Proposition
 checkProp (Literal (Boolean True)) = return Typed.TrueProp
@@ -172,7 +172,7 @@ checkProp (Or prop1 prop2) = do
   prop2' <- checkProp prop2
   return $ Typed.Or prop1' prop2'
 checkProp (Not prop) = Typed.Not <$> checkProp prop
-checkProp expr = Typed.FromExpression <$> checkExprType expr (DataType BooleanType)
+checkProp expr = Typed.FromExpression <$> checkExprType expr (BaseType BooleanType)
 
 unpackMethodType :: Id -> Int -> Type -> Checker (Type, [Type])
 unpackMethodType x n (MethodType rt ts) | n == length ts = return (rt, ts)
@@ -191,24 +191,24 @@ checkRef (IdRef x) = do
 checkRef (ArrayRef ref expr) = do
   (t, ref') <- checkRef ref
   s <- unpackArrayType ref t
-  expr' <- checkExprType expr (DataType IntType)
+  expr' <- checkExprType expr (BaseType IntType)
   return (s, Typed.ArrayRef s ref' expr')
 
 checkUnary :: UnOp -> Type -> Checker Type
-checkUnary op (DataType dt) | Just ds <- unary op dt = return (DataType ds)
+checkUnary op (BaseType dt) | Just ds <- unary op dt = return (BaseType ds)
 checkUnary op t = throw $ ErrorUnaryOperator op t
 
 checkBinary :: BinOp -> Type -> Type -> Checker Type
-checkBinary op t1 t2 | DataType dt <- merge t1 t2
-                     , Just ds <- binary op dt = return (DataType ds)
+checkBinary op t1 t2 | BaseType dt <- merge t1 t2
+                     , Just ds <- binary op dt = return (BaseType ds)
 checkBinary op t1 t2 = throw $ ErrorBinaryOperator op t1 t2
 
 checkRel :: RelOp -> Type -> Type -> Checker Type
-checkRel op t s | DataType dt <- merge t s = return (DataType dt)
+checkRel op t s | BaseType dt <- merge t s = return (BaseType dt)
 checkRel op t s = throw $ ErrorBinaryRelation op t s
 
 checkIncDec :: IncDecOp -> Type -> Checker Type
-checkIncDec op (DataType dt) | Just ds <- incdec dt = return (DataType ds)
+checkIncDec op (BaseType dt) | Just ds <- incdec dt = return (BaseType ds)
 checkIncDec op t = throw $ ErrorIncDecOperator op t
 
 checkExprType :: Expression -> Type -> Checker Typed.Expression

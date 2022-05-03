@@ -17,7 +17,7 @@ data Expression
   | Unary Type UnOp Expression
   | Binary Type BinOp Expression Expression
   | IncDec Type IncDecOp Reference
-  | Conversion DataType DataType Expression
+  | Conversion BaseType BaseType Expression
   | FromProposition Proposition
 
 data Proposition

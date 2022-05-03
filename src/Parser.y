@@ -131,10 +131,10 @@ Arg
 
 Type
   : VOIDKW { VoidType }
-  | DataType { DataType $1 }
+  | BaseType { BaseType $1 }
   | Type '[' ']' { ArrayType $1 }
 
-DataType
+BaseType
   : BOOLEANKW { BooleanType }
   | INTKW     { IntType }
   | FLOATKW   { FloatType }

@@ -80,7 +80,7 @@ sepembrace open close sep ds = embrace open close sep (map (<> space) (init ds) 
 prettyType :: Type -> Document
 prettyType = annotate (PT.colorDull PT.Cyan) . undefined
 
-instance Show DataType where
+instance Show BaseType where
   show BooleanType = "boolean"
   show IntType = "int"
   show FloatType = "float"
@@ -90,7 +90,7 @@ instance Show DataType where
 
 instance Show Type where
   show VoidType = "void"
-  show (DataType dt) = show dt
+  show (BaseType dt) = show dt
   show (ArrayType t) = show t ++ "[]"
   show (MethodType rt ts) = "<method>"
 

@@ -9,7 +9,7 @@ import Data.Char (ord)
 class Jasmin a where
     jasmin :: a -> String
 
-instance Jasmin DataType where
+instance Jasmin BaseType where
     jasmin BooleanType = "Z"
     jasmin IntType = "I"
     jasmin FloatType = "F"
@@ -19,7 +19,7 @@ instance Jasmin DataType where
 
 instance Jasmin Type where
     jasmin VoidType = "V"
-    jasmin (DataType dt) = jasmin dt
+    jasmin (BaseType dt) = jasmin dt
     jasmin (ArrayType t) = "[" ++ jasmin t
     jasmin (MethodType rt ts) = "(" ++ concat (map jasmin ts) ++ ")" ++ jasmin rt
 
@@ -88,7 +88,7 @@ binary t MOD = typePrefix t ++ "rem"
 invokestatic :: Id -> Type -> String
 invokestatic m t = "invokestatic " ++ show m ++ jasmin t
 
-conversion :: DataType -> DataType -> String
+conversion :: BaseType -> BaseType -> String
 conversion t StringType = "invokestatic conversion(" ++ jasmin t ++ ")Ljava/lang/String;"
 conversion IntType FloatType = "i2f"
 conversion IntType DoubleType = "i2d"
@@ -101,9 +101,9 @@ conversion DoubleType FloatType = "d2f"
 typePrefix :: Type -> String
 typePrefix VoidType               = ""
 typePrefix (ArrayType _)          = "a"
-typePrefix (DataType BooleanType) = "i"
-typePrefix (DataType IntType)     = "i"
-typePrefix (DataType FloatType)   = "f"
-typePrefix (DataType DoubleType)  = "d"
-typePrefix (DataType CharType)    = "i"
-typePrefix (DataType StringType)  = "a"
+typePrefix (BaseType BooleanType) = "i"
+typePrefix (BaseType IntType)     = "i"
+typePrefix (BaseType FloatType)   = "f"
+typePrefix (BaseType DoubleType)  = "d"
+typePrefix (BaseType CharType)    = "i"
+typePrefix (BaseType StringType)  = "a"
