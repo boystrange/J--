@@ -122,7 +122,7 @@ compileExpr (FromProposition prop) = do
     emitLabel next
 
 compileStmt :: Label -> Statement -> Compiler ()
-compileStmt next Empty = emit $ Jasmin.goto next
+compileStmt next Skip = emit $ Jasmin.goto next
 compileStmt next (If prop stmt1 stmt2) = do
     true <- newLabel
     false <- newLabel

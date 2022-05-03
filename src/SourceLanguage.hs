@@ -24,7 +24,7 @@ data Expression
   | Not Expression
 
 data Statement
-  = Empty
+  = Skip
   | If Expression Statement Statement
   | While Expression Statement
   | Do Statement Expression

@@ -69,7 +69,7 @@ initializeEntry x = do
   setEntry x (entry { SymbolTable.entryInit = True })
 
 checkStmt :: Type -> Statement -> Checker (Bool, Typed.Statement)
-checkStmt rt Empty = return (False, Typed.Empty)
+checkStmt rt Skip = return (False, Typed.Skip)
 checkStmt rt (If expr stmt1 stmt2) = do
   prop <- checkProp expr
   (b1, stmt1') <- checkStmt rt stmt1
@@ -102,7 +102,7 @@ checkStmt rt (Seq stmt1 stmt2) = do
   return (b1 || b2, Typed.Seq stmt1' stmt2')
 checkStmt rt (Local t x) = do
   newEntry x t
-  return (False, Typed.Empty)
+  return (False, Typed.Skip)
 checkStmt rt (Ignore expr) = do
   (t, expr') <- checkExpr expr
   return (False, Typed.Expression expr')

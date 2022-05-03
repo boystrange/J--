@@ -145,7 +145,7 @@ DataType
 -- STATEMENTS
 
 StatementList
-  : { Empty }
+  : { Skip }
   | Statement StatementList { Seq $1 $2 }
 
 Statement
@@ -159,11 +159,11 @@ Statement
   | '{' StatementList '}' { Block $2 }
 
 StatementOpt
-  : { Empty }
+  : { Skip }
   | Statement { $1 }
 
 ElseOpt
-  : { Empty }
+  : { Skip }
   | ELSEKW Statement { $2 }
 
 InitNeList
@@ -249,7 +249,7 @@ lexwrap :: (Token -> Alex a) -> Alex a
 lexwrap = (alexMonadScan' >>=)
 
 expandLocals :: Type -> [(Id, Maybe Expression)] -> Statement
-expandLocals t = foldl Seq Empty . map aux
+expandLocals t = foldl Seq Skip . map aux
   where
     aux (x, Nothing) = Local t x
     aux (x, Just expr) = Seq (Local t x) (Ignore $ Assign (IdRef x) expr)

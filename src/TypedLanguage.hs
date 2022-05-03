@@ -32,7 +32,7 @@ data Proposition
 type PropositionOrExpression = Either Proposition Expression
 
 data Statement
-  = Empty
+  = Skip
   | If Proposition Statement Statement
   | While Proposition Statement
   | Do Statement Proposition

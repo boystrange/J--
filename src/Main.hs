@@ -51,7 +51,7 @@ main = do
   case parseProgram file source of
     Left msg -> printWarning msg
     Right (methods, stmts) -> do
-      let stmt = foldr Seq Empty stmts
+      let stmt = foldr Seq Skip stmts
       methods <- Checker.checkMethods (Method VoidType (Id Somewhere "main") [] stmt : methods)
       code <- Compiler.compileMethods methods
       forM_ code putStrLn
