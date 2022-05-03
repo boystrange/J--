@@ -27,6 +27,7 @@ import Exceptions (MyException)
 import Parser
 import qualified Checker
 import qualified Compiler
+import qualified Jasmin
 
 import System.Console.GetOpt
 import System.IO (stdout, stderr, hFlush, hPutStrLn)
@@ -53,8 +54,8 @@ main = do
     Right (methods, stmts) -> do
       let stmt = foldr Seq Skip stmts
       methods <- Checker.checkMethods (Method VoidType (Id Somewhere "main") [] stmt : methods)
-      code <- Compiler.compileMethods methods
-      forM_ code putStrLn
+      methods' <- Compiler.compileMethods methods
+      forM_ methods' Jasmin.printMethod
 
   -- where
   --   check :: FilePath -> [Flag] -> [ProcessDef] -> IO ()

@@ -5,6 +5,7 @@ import Type
 import Language
 import Render ()
 import Data.Char (ord)
+import Control.Monad (forM_)
 
 class Jasmin a where
     jasmin :: a -> String
@@ -31,62 +32,74 @@ instance Jasmin RelOp where
     jasmin JGT = "gt"
     jasmin JGE = "ge"
 
-goto :: Label -> String
-goto l = "goto " ++ show l
+instance Jasmin UnOp where
+    jasmin Language.NEG = "neg"
 
-ldc :: Literal -> String
-ldc (Boolean False) = "ldc 0"
-ldc (Boolean True)  = "ldc 1"
-ldc (Int n)         = "ldc " ++ show n
-ldc (Float n)       = "ldc " ++ show n
-ldc (Double n)      = "ldc_w " ++ show n
-ldc (Char c)        = "ldc " ++ show (ord c)
-ldc (String s)      = "ldc " ++ show s
+instance Jasmin BinOp where
+    jasmin ADD = "add"
+    jasmin SUB = "sub"
+    jasmin MUL = "mul"
+    jasmin DIV = "div"
+    jasmin MOD = "rem"
 
-load :: Type -> Slot -> String
-load t i = typePrefix t ++ "load " ++ show i
+instance Jasmin Literal where
+    jasmin (Boolean False) = "0"
+    jasmin (Boolean True)  = "1"
+    jasmin (Int n)         = show n
+    jasmin (Float n)       = show n
+    jasmin (Double n)      = show n
+    jasmin (Char c)        = show (ord c)
+    jasmin (String s)      = show s -- FIXME
 
-store :: Type -> Slot -> String
-store t i = typePrefix t ++ "store " ++ show i
+data Code
+    = LABEL Label
+    | GOTO Label
+    | LDC Literal
+    | LOAD Type Slot
+    | STORE Type Slot
+    | ALOAD Type
+    | ASTORE Type
+    | DUP Type
+    | DUP_X2 Type
+    | NEG Type
+    | RETURN Type
+    | CMP Type
+    | IF RelOp Label
+    | IFCMP Type RelOp Label
+    | UNARY Type UnOp
+    | BINARY Type BinOp
+    | INVOKE Id Type
+    | CONVERT BaseType BaseType
 
-aload :: Type -> String
-aload t = typePrefix t ++ "aload"
+data Method = Method Id Type [Code]
 
-astore :: Type -> String
-astore t = typePrefix t ++ "astore"
+printMethod :: Method -> IO ()
+printMethod (Method m t is) = do
+    putStrLn $ ".method public " ++ show m ++ jasmin t
+    forM_ is (putStrLn . show)
+    putStrLn $ ".end method"
 
-dup :: Type -> String
-dup t | double t = "dup2"
-      | otherwise = "dup"
-
-dup_x2 :: Type -> String
-dup_x2 t | double t = "dup2_x2"
-         | otherwise = "dup_x2"
-
-neg :: Type -> String
-neg t = typePrefix t ++ "neg"
-
-ret :: Type -> String
-ret t = typePrefix t ++ "return"
-
-zif :: RelOp -> Label -> String
-zif op l = "if" ++ jasmin op ++ " " ++ show l
-
-ifcmp :: Type -> RelOp -> Label -> String
-ifcmp t op l = "if_" ++ typePrefix t ++ "cmp" ++ jasmin op ++ " " ++ show l
-
-unary :: Type -> UnOp -> String
-unary t NEG = typePrefix t ++ "neg"
-
-binary :: Type -> BinOp -> String
-binary t ADD = typePrefix t ++ "add"
-binary t SUB = typePrefix t ++ "sub"
-binary t MUL = typePrefix t ++ "mul"
-binary t DIV = typePrefix t ++ "div"
-binary t MOD = typePrefix t ++ "rem"
-
-invokestatic :: Id -> Type -> String
-invokestatic m t = "invokestatic " ++ show m ++ jasmin t
+instance Show Code where
+    show (LABEL l)              = show l ++ ":"
+    show (GOTO l)               = "    goto " ++ show l
+    show (LDC lit@(Double n))   = "    ldc_w " ++ jasmin lit
+    show (LDC lit)              = "    ldc " ++ jasmin lit
+    show (LOAD t i)             = "    " ++ typePrefix t ++ "load " ++ show i
+    show (STORE t i)            = "    " ++ typePrefix t ++ "store " ++ show i
+    show (ALOAD t)              = "    " ++ typePrefix t ++ "aload"
+    show (ASTORE t)             = "    " ++ typePrefix t ++ "astore"
+    show (CMP t)                = "    " ++ typePrefix t ++ "cmpl"
+    show (DUP t) | double t     = "    dup2"
+                 | otherwise    = "    dup"
+    show (DUP_X2 t) | double t  = "    dup2_x2"
+                    | otherwise = "    dup_x2"
+    show (RETURN t)             = "    " ++ typePrefix t ++ "return"
+    show (IF op l)              = "    if" ++ jasmin op ++ " " ++ show l
+    show (IFCMP t op l)         = "    if_" ++ typePrefix t ++ "cmp" ++ jasmin op ++ " " ++ show l
+    show (UNARY t op)           = "    " ++ typePrefix t ++ jasmin op
+    show (BINARY t op)          = "    " ++ typePrefix t ++ jasmin op
+    show (INVOKE m t)           = "    invokestatic " ++ show m ++ jasmin t
+    show (CONVERT t s)          = "    " ++ conversion t s
 
 conversion :: BaseType -> BaseType -> String
 conversion t StringType = "invokestatic conversion(" ++ jasmin t ++ ")Ljava/lang/String;"

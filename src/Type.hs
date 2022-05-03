@@ -39,6 +39,11 @@ isNumeric FloatType = True
 isNumeric DoubleType = True
 isNumeric _ = False
 
+isFloating :: BaseType -> Bool
+isFloating FloatType = True
+isFloating DoubleType = True
+isFloating _ = False
+
 isEnumeration :: BaseType -> Bool
 isEnumeration t = isNumeric t || t == CharType
 
