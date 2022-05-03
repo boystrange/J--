@@ -97,9 +97,11 @@ checkStmt rt (Block stmt) = do
   return (b, stmt')
 checkStmt rt (Seq stmt1 stmt2) = do
   (b1, stmt1') <- checkStmt rt stmt1
-  -- if b1 == True then stmt2 is unreachable
-  (b2, stmt2') <- checkStmt rt stmt2
-  return (b1 || b2, Typed.Seq stmt1' stmt2')
+  if b1
+    then return (True, stmt1')
+    else do
+      (b2, stmt2') <- checkStmt rt stmt2
+      return (b2, Typed.Seq stmt1' stmt2')
 checkStmt rt (Local t x) = do
   newEntry x t
   return (False, Typed.Skip)
@@ -221,8 +223,9 @@ checkMethod method@(Method t x args stmt) = do
   forM_ args (uncurry newEntry)
   (ret, stmt') <- checkStmt t stmt
   when (not ret && t /= VoidType) $ throw $ ErrorMissingReturn x
+  let stmt'' = if ret then stmt' else Typed.Seq stmt' (Typed.Return VoidType Nothing)
   popScope
-  return $ Typed.Method (snd (typeOfMethod method)) x stmt'
+  return $ Typed.Method (snd (typeOfMethod method)) x stmt''
 
 checkMethods :: [Method] -> IO [Typed.Method]
 checkMethods methods = do
