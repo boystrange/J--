@@ -149,18 +149,15 @@ StatementList
   | Statement StatementList { Seq $1 $2 }
 
 Statement
-  : IFKW '(' Expression ')' Statement ElseOpt { If $3 $5 $6 }
+  : ';' { Skip }
+  | IFKW '(' Expression ')' Statement ElseOpt { If $3 $5 $6 }
   | WHILEKW '(' Expression ')' Statement { While $3 $5 }
   | DOKW Statement WHILEKW '(' Expression ')' { Do $2 $5 }
-  | FORKW '(' StatementOpt ';' ExpressionOpt ';' StatementOpt ')' Statement { expandFor $3 $5 $7 $9 }
+  | FORKW '(' Statement ';' Expression ';' Statement ')' Statement { expandFor $3 $5 $7 $9 }
   | RETURNKW ExpressionOpt ';' { Return $2 }
   | Expression ';' { Ignore $1 }
   | Type InitNeList ';' { expandLocals $1 $2 }
   | '{' StatementList '}' { Block $2 }
-
-StatementOpt
-  : { Skip }
-  | Statement { $1 }
 
 ElseOpt
   : { Skip }
@@ -254,12 +251,8 @@ expandLocals t = foldl Seq Skip . map aux
     aux (x, Nothing) = Local t x
     aux (x, Just expr) = Seq (Local t x) (Ignore $ Assign (IdRef x) expr)
 
-expandFor :: Statement -> Maybe Expression -> Statement -> Statement -> Statement
-expandFor init me incr body = Block $ Seq init $ While test $ Seq body incr
-  where
-    test = case me of
-             Nothing -> Literal (Boolean True)
-             Just e -> e
+expandFor :: Statement -> Expression -> Statement -> Statement -> Statement
+expandFor init expr incr body = Block $ Seq init $ While expr $ Seq body incr
 
 happyError :: Token -> Alex a
 happyError (Token p t) = alexError' p ("parse error at token '" ++ show t ++ "'")
