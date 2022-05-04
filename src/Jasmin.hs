@@ -10,19 +10,16 @@ import Control.Monad (forM_)
 class Jasmin a where
     jasmin :: a -> String
 
-instance Jasmin BaseType where
-    jasmin BooleanType = "Z"
-    jasmin IntType = "I"
-    jasmin FloatType = "F"
-    jasmin DoubleType = "D"
-    jasmin CharType = "C"
-    jasmin StringType = "Ljava/lang/String;"
-
 instance Jasmin Type where
-    jasmin VoidType = "V"
-    jasmin (BaseType dt) = jasmin dt
-    jasmin (ArrayType t) = "[" ++ jasmin t
-    jasmin (MethodType rt ts) = "(" ++ concat (map jasmin ts) ++ ")" ++ jasmin rt
+    jasmin VoidType          = "V"
+    jasmin BooleanType       = "Z"
+    jasmin IntType           = "I"
+    jasmin FloatType         = "F"
+    jasmin DoubleType        = "D"
+    jasmin CharType          = "C"
+    jasmin StringType        = "Ljava/lang/String;"
+    jasmin (ArrayType t)     = "[" ++ jasmin t
+    jasmin (MethodType t ts) = "(" ++ concat (map jasmin ts) ++ ")" ++ jasmin t
 
 instance Jasmin RelOp where
     jasmin JEQ = "eq"
@@ -32,7 +29,7 @@ instance Jasmin RelOp where
     jasmin JGT = "gt"
     jasmin JGE = "ge"
 
-instance Jasmin UnOp where
+instance Jasmin SignOp where
     jasmin Language.NEG = "neg"
 
 instance Jasmin BinOp where
@@ -49,7 +46,7 @@ instance Jasmin Literal where
     jasmin (Float n)       = show n
     jasmin (Double n)      = show n
     jasmin (Char c)        = show (ord c)
-    jasmin (String s)      = show s -- FIXME
+    jasmin (String s)      = show s -- FIXME?
 
 data Code
     = LABEL Label
@@ -59,6 +56,8 @@ data Code
     | STORE Type Slot
     | ALOAD Type
     | ASTORE Type
+    | NOP
+    | POP Type
     | DUP Type
     | DUP_X2 Type
     | NEG Type
@@ -66,10 +65,10 @@ data Code
     | CMP Type
     | IF RelOp Label
     | IFCMP Type RelOp Label
-    | UNARY Type UnOp
+    | UNARY Type SignOp
     | BINARY Type BinOp
     | INVOKE Id Type
-    | CONVERT BaseType BaseType
+    | CONVERT Type Type
 
 data Method = Method Id Type [Code]
 
@@ -80,29 +79,28 @@ printMethod (Method m t is) = do
     putStrLn $ ".end method"
 
 instance Show Code where
-    show (LABEL l)              = show l ++ ":"
-    show (GOTO l)               = "    goto " ++ show l
-    show (LDC lit@(Double n))   = "    ldc_w " ++ jasmin lit
-    show (LDC lit)              = "    ldc " ++ jasmin lit
-    show (LOAD t i)             = "    " ++ typePrefix t ++ "load " ++ show i
-    show (STORE t i)            = "    " ++ typePrefix t ++ "store " ++ show i
-    show (ALOAD t)              = "    " ++ typePrefix t ++ "aload"
-    show (ASTORE t)             = "    " ++ typePrefix t ++ "astore"
-    show (CMP t)                = "    " ++ typePrefix t ++ "cmpl"
-    show (DUP t) | double t     = "    dup2"
-                 | otherwise    = "    dup"
-    show (DUP_X2 t) | double t  = "    dup2_x2"
-                    | otherwise = "    dup_x2"
-    show (RETURN t)             = "    " ++ typePrefix t ++ "return"
-    show (IF op l)              = "    if" ++ jasmin op ++ " " ++ show l
-    show (IFCMP t op l)         = "    if_" ++ typePrefix t ++ "cmp" ++ jasmin op ++ " " ++ show l
-    show (UNARY t op)           = "    " ++ typePrefix t ++ jasmin op
-    show (BINARY t op)          = "    " ++ typePrefix t ++ jasmin op
-    show (INVOKE m t)           = "    invokestatic " ++ show m ++ jasmin t
-    show (CONVERT t s)          = "    " ++ conversion t s
+    show (LABEL l)      = show l ++ ":"
+    show (GOTO l)       = "    goto " ++ show l
+    show (LDC lit)      = "    ldc" ++ literalDouble lit ++ " " ++ jasmin lit
+    show (LOAD t i)     = "    " ++ typePrefix t ++ "load " ++ show i
+    show (STORE t i)    = "    " ++ typePrefix t ++ "store " ++ show i
+    show (ALOAD t)      = "    " ++ typePrefix t ++ "aload"
+    show (ASTORE t)     = "    " ++ typePrefix t ++ "astore"
+    show (CMP t)        = "    " ++ typePrefix t ++ "cmpl"
+    show NOP            = "    nop"
+    show (POP t)        = "    pop" ++ typeDouble t
+    show (DUP t)        = "    dup" ++ typeDouble t
+    show (DUP_X2 t)     = "    dup" ++ typeDouble t ++ "_x2"
+    show (RETURN t)     = "    " ++ typePrefix t ++ "return"
+    show (IF op l)      = "    if" ++ jasmin op ++ " " ++ show l
+    show (IFCMP t op l) = "    if_" ++ typePrefix t ++ "cmp" ++ jasmin op ++ " " ++ show l
+    show (UNARY t op)   = "    " ++ typePrefix t ++ jasmin op
+    show (BINARY t op)  = "    " ++ typePrefix t ++ jasmin op
+    show (INVOKE m t)   = "    invokestatic " ++ show m ++ jasmin t
+    show (CONVERT t s)  = "    " ++ conversion t s
 
-conversion :: BaseType -> BaseType -> String
-conversion t StringType = "invokestatic conversion(" ++ jasmin t ++ ")Ljava/lang/String;"
+conversion :: Type -> Type -> String
+conversion t StringType = "invokestatic stringOf(" ++ jasmin t ++ ")Ljava/lang/String;"
 conversion IntType FloatType = "i2f"
 conversion IntType DoubleType = "i2d"
 conversion IntType CharType = "i2c"
@@ -111,12 +109,20 @@ conversion FloatType IntType = "f2i"
 conversion DoubleType IntType = "d2i"
 conversion DoubleType FloatType = "d2f"
 
+literalDouble :: Literal -> String
+literalDouble (Double _) = "_w"
+literalDouble _          = ""
+
+typeDouble :: Type -> String
+typeDouble t | double t  = "2"
+             | otherwise = ""
+
 typePrefix :: Type -> String
-typePrefix VoidType               = ""
-typePrefix (ArrayType _)          = "a"
-typePrefix (BaseType BooleanType) = "i"
-typePrefix (BaseType IntType)     = "i"
-typePrefix (BaseType FloatType)   = "f"
-typePrefix (BaseType DoubleType)  = "d"
-typePrefix (BaseType CharType)    = "i"
-typePrefix (BaseType StringType)  = "a"
+typePrefix VoidType      = ""
+typePrefix (ArrayType _) = "a"
+typePrefix BooleanType   = "i"
+typePrefix IntType       = "i"
+typePrefix FloatType     = "f"
+typePrefix DoubleType    = "d"
+typePrefix CharType      = "i"
+typePrefix StringType    = "a"

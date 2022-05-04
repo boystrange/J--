@@ -17,61 +17,62 @@
 
 module Type where
 
-data BaseType
-  = BooleanType
+data Type
+  = VoidType
+  | BooleanType
   | IntType
   | FloatType
   | DoubleType
   | CharType
   | StringType
-  deriving Eq
-
-data Type
-  = VoidType
-  | BaseType BaseType
   | ArrayType Type
   | MethodType Type [Type]
   deriving Eq
 
-isNumeric :: BaseType -> Bool
+isNumeric :: Type -> Bool
 isNumeric IntType = True
 isNumeric FloatType = True
 isNumeric DoubleType = True
 isNumeric _ = False
 
-isFloating :: BaseType -> Bool
+isString :: Type -> Bool
+isString StringType = True
+isString _ = False
+
+isFloating :: Type -> Bool
 isFloating FloatType = True
 isFloating DoubleType = True
 isFloating _ = False
 
-isEnumeration :: BaseType -> Bool
-isEnumeration t = isNumeric t || t == CharType
+isEnumeration :: Type -> Bool
+isEnumeration CharType = True
+isEnumeration t = isNumeric t
 
 sizeOf :: Type -> Int
 sizeOf VoidType = 0
-sizeOf (BaseType DoubleType) = 2
-sizeOf (BaseType _) = 1
-sizeOf (ArrayType _) = 1
 sizeOf (MethodType _ _) = 0
+sizeOf DoubleType = 2
+sizeOf _ = 1
 
 double :: Type -> Bool
-double (BaseType DoubleType) = True
-double _ = False
+double t = sizeOf t == 2
 
-merge :: Type -> Type -> Type
-merge t s | t `subtype` s = s
-          | s `subtype` t = t
+merge :: Type -> Type -> Maybe Type
+merge t s | widening t s = Just s
+          | widening s t = Just t
+merge _ _ = Nothing
 
-subdatatype :: BaseType -> BaseType -> Bool
-subdatatype CharType IntType = True
-subdatatype CharType FloatType = True
-subdatatype CharType DoubleType = True
-subdatatype IntType FloatType = True
-subdatatype IntType DoubleType = True
-subdatatype FloatType DoubleType = True
-subdatatype _ StringType = True
-subdatatype t s = t == s
+widening :: Type -> Type -> Bool
+widening CharType  IntType    = True
+widening CharType  FloatType  = True
+widening CharType  DoubleType = True
+widening IntType   FloatType  = True
+widening IntType   DoubleType = True
+widening FloatType DoubleType = True
+widening t         s          = t == s
 
-subtype :: Type -> Type -> Bool
-subtype (BaseType dt1) (BaseType dt2) = subdatatype dt1 dt2
-subtype t s = t == s
+narrowing :: Type -> Type -> Bool
+narrowing = flip widening
+
+casting :: Type -> Type -> Bool
+casting t s = widening t s || narrowing t s

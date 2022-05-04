@@ -2,7 +2,7 @@ module Compiler where
 
 import Control.Monad.State.Lazy (StateT)
 import qualified Control.Monad.State.Lazy as State
-import Control.Monad (forM_)
+import Control.Monad (forM_, unless)
 
 import Atoms
 import Type
@@ -44,7 +44,7 @@ compileRef (ArrayRef t r expr) = do
     emit $ Jasmin.ALOAD t
 
 jumpIf :: Type -> RelOp -> Label -> Compiler ()
-jumpIf t@(BaseType dt) op tt | isFloating dt = do
+jumpIf t op tt | isFloating t = do
     emit $ Jasmin.CMP t
     emit $ Jasmin.IF op tt
 jumpIf t op tt = emit $ Jasmin.IFCMP t op tt
@@ -75,9 +75,9 @@ compileProp tt ff (FromExpression expr) = do
 
 compileExpr :: Expression -> Compiler ()
 compileExpr (Literal lit) = emit $ Jasmin.LDC lit
-compileExpr (Call x t exprs) = do
+compileExpr (Call t x exprs) = do
     forM_ exprs compileExpr
-    emit $ Jasmin.INVOKE t x
+    emit $ Jasmin.INVOKE x (MethodType t (map typeof exprs))
 compileExpr (New t expr) = do
     compileExpr expr
     undefined
@@ -99,10 +99,10 @@ compileExpr (Binary t op expr1 expr2) = do
     compileExpr expr1
     compileExpr expr2
     emit $ Jasmin.BINARY t op
-compileExpr (IncDec t op r) = undefined
-compileExpr (Conversion s t expr) = do
+compileExpr (Step t step sign ref) = compileStep t step sign ref
+compileExpr (Convert t expr) = do
     compileExpr expr
-    emit $ Jasmin.CONVERT s t
+    emit $ Jasmin.CONVERT (typeof expr) t
 compileExpr (FromProposition prop) = do
     true <- newLabel
     false <- newLabel
@@ -114,6 +114,21 @@ compileExpr (FromProposition prop) = do
     emitLabel false
     emit $ Jasmin.LDC (Boolean False)
     emitLabel next
+
+compileStep :: Type -> StepOp -> SignOp -> Reference -> Compiler ()
+compileStep _ POST sign (ArrayRef t ref expr) = undefined
+compileStep _ POST sign (IdRef t i _) = do
+    emit $ Jasmin.LOAD t i
+    emit $ Jasmin.DUP t
+    emit $ Jasmin.LDC (one t)
+    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
+    emit $ Jasmin.STORE t i
+compileStep _ PRE sign (IdRef t i _) = do
+    emit $ Jasmin.LOAD t i
+    emit $ Jasmin.LDC (one t)
+    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
+    emit $ Jasmin.DUP t
+    emit $ Jasmin.STORE t i
 
 compileStmt :: Label -> Statement -> Compiler ()
 compileStmt next Skip = emit $ Jasmin.GOTO next
@@ -148,6 +163,11 @@ compileStmt next (Seq stmt1 stmt2) = do
     compileStmt cont stmt1
     emitLabel cont
     compileStmt next stmt2
+compileStmt next (Ignore expr) = do
+    compileExpr expr
+    let t = typeof expr
+    unless (sizeOf t == 0) $ emit $ Jasmin.POP t
+    emit $ Jasmin.GOTO next
 
 compileMethod :: Method -> Compiler Jasmin.Method
 compileMethod (Method t x stmt) = do

@@ -131,16 +131,13 @@ Arg
 
 Type
   : VOIDKW { VoidType }
-  | BaseType { BaseType $1 }
-  | Type '[' ']' { ArrayType $1 }
-
-BaseType
-  : BOOLEANKW { BooleanType }
+  | BOOLEANKW { BooleanType }
   | INTKW     { IntType }
   | FLOATKW   { FloatType }
   | DOUBLEKW  { DoubleType }
   | CHARKW    { CharType }
   | STRINGKW  { StringType }
+  | Type '[' ']' { ArrayType $1 }
 
 -- STATEMENTS
 
@@ -204,10 +201,10 @@ Expression
   | Expression '/' Expression { Binary DIV $1 $3 }
   | Expression '%' Expression { Binary MOD $1 $3 }
   | '(' Type ')' Expression %prec UNARY { Cast $2 $4 }
-  | Ref '++' { IncDec POSTINC $1 }
-  | Ref '--' { IncDec POSTDEC $1 }
-  | '++' Ref { IncDec PREINC $2 }
-  | '--' Ref { IncDec PREDEC $2 }
+  | Ref '++' { Step POST POS $1 }
+  | Ref '--' { Step POST NEG $1 }
+  | '++' Ref { Step PRE POS $2 }
+  | '--' Ref { Step PRE NEG $2 }
   | '-' Expression %prec UNARY { Unary NEG $2 }
   | '+' Expression %prec UNARY { Unary POS $2 }
   | Expression '<' Expression { Rel JLT $1 $3 }

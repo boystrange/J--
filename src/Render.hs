@@ -80,17 +80,14 @@ sepembrace open close sep ds = embrace open close sep (map (<> space) (init ds) 
 prettyType :: Type -> Document
 prettyType = annotate (PT.colorDull PT.Cyan) . undefined
 
-instance Show BaseType where
+instance Show Type where
+  show VoidType = "void"
   show BooleanType = "boolean"
   show IntType = "int"
   show FloatType = "float"
   show DoubleType = "double"
   show CharType = "char"
   show StringType = "String"
-
-instance Show Type where
-  show VoidType = "void"
-  show (BaseType dt) = show dt
   show (ArrayType t) = show t ++ "[]"
   show (MethodType rt ts) = "<method>"
 
@@ -98,7 +95,7 @@ instance Show Reference where
   show (IdRef x) = showWithPos x
   show (ArrayRef ref _) = show ref ++ "[...]"
 
-instance Show UnOp where
+instance Show SignOp where
   show NEG = "-"
   show POS = "+"
 
@@ -116,12 +113,6 @@ instance Show RelOp where
   show JGE = ">="
   show JEQ = "=="
   show JNE = "!="
-
-instance Show IncDecOp where
-  show PREINC = "++"
-  show PREDEC = "--"
-  show POSTINC = "++"
-  show POSTDEC = "--"
 
 instance Show Label where
     show (L n) = "L" ++ show n

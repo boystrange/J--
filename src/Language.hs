@@ -43,11 +43,17 @@ data RelOp
   | JEQ
   | JNE
 
-data UnOp = NEG | POS
+data SignOp = NEG | POS
+  deriving Eq
 
-data IncDecOp = PREINC | PREDEC | POSTINC | POSTDEC
+one :: Type -> Literal
+one IntType = Int 1
+one FloatType = Float 1
+one DoubleType = Double 1
 
-binary :: BinOp -> BaseType -> Maybe BaseType
+data StepOp = PRE | POST
+
+binary :: BinOp -> Type -> Maybe Type
 binary ADD t          | isNumeric t = Just t
 binary ADD CharType   = Just IntType
 binary ADD StringType = Just StringType
@@ -58,20 +64,21 @@ binary DIV t          | isNumeric t = Just t
 binary MOD IntType    = Just IntType
 binary _   _          = Nothing
 
-unary :: UnOp -> BaseType -> Maybe BaseType
-unary NEG t           | isNumeric t = Just t
-unary POS t           | isNumeric t = Just t
-unary _   _           = Nothing
+unary :: SignOp -> Type -> Maybe Type
+unary _ t | isNumeric t = Just t
+unary _ _               = Nothing
 
-incdec :: BaseType -> Maybe BaseType
-incdec t        | isNumeric t = Just t
-incdec CharType = Just CharType
+incdec :: Type -> Maybe Type
+incdec t | isEnumeration t = Just t
 incdec _        = Nothing
 
-typeOfLiteral :: Literal -> BaseType
-typeOfLiteral (Int _) = IntType
-typeOfLiteral (Boolean _) = BooleanType
-typeOfLiteral (Float _) = FloatType
-typeOfLiteral (Double _) = DoubleType
-typeOfLiteral (Char _) = CharType
-typeOfLiteral (String _) = StringType
+class Typed a where
+  typeof :: a -> Type
+
+instance Typed Literal where
+  typeof (Int _)     = IntType
+  typeof (Boolean _) = BooleanType
+  typeof (Float _)   = FloatType
+  typeof (Double _)  = DoubleType
+  typeof (Char _)    = CharType
+  typeof (String _)  = StringType

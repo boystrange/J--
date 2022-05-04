@@ -8,17 +8,35 @@ data Reference
   = IdRef Type Slot Id
   | ArrayRef Type Reference Expression
 
+instance Typed Reference where
+  typeof (IdRef t _ _) = t
+  typeof (ArrayRef t _ _) = t
+
 data Expression
   = Literal Literal
+  | Ref Reference
   | Call Type Id [Expression]
   | New Type Expression
   | Assign Reference Expression
-  | Ref Reference
-  | Unary Type UnOp Expression
+  | Unary Type SignOp Expression
   | Binary Type BinOp Expression Expression
-  | IncDec Type IncDecOp Reference
-  | Conversion BaseType BaseType Expression
+  | Step Type StepOp SignOp Reference
+  | Convert Type Expression
+  | StringOf Type Expression
   | FromProposition Proposition
+
+instance Typed Expression where
+  typeof (Literal lit) = typeof lit
+  typeof (Ref ref) = typeof ref
+  typeof (Call rt _ _) = rt
+  typeof (New t _) = ArrayType t
+  typeof (Assign ref _) = typeof ref
+  typeof (Unary t _ _) = t
+  typeof (Binary t _ _ _) = t
+  typeof (Step t _ _ _) = t
+  typeof (Convert t _) = t
+  typeof (StringOf _ _) = StringType
+  typeof (FromProposition _) = BooleanType
 
 data Proposition
   = TrueProp
@@ -37,7 +55,7 @@ data Statement
   | While Proposition Statement
   | Do Statement Proposition
   | Return Type (Maybe Expression)
-  | Expression Expression
+  | Ignore Expression
   | Seq Statement Statement
 
 data Method = Method Type Id Statement

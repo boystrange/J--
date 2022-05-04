@@ -37,8 +37,8 @@ $digit   = 0-9
 $alpha   = [A-Za-z]
 @next    = $alpha | $digit | \_
 @id      = $alpha @next*
-@int     = $digit+
-@float   = (@int \. @int) | (@int \. @int)
+@nat     = $digit+
+@float   = (@nat \. @nat?) | (@nat? \. @nat)
 @string  = \"[^\"]*\"
 
 tokens :-
@@ -73,7 +73,7 @@ tokens :-
   "?"     { lex' TokenQMARK       }
   "!"     { lex' TokenEMARK       }
   @id     { lex lookupID         }
-  @int    { lex TokenINT          }
+  @nat    { lex TokenINT          }
 
 {
 -- To improve error messages, We keep the path of the file we are
@@ -105,6 +105,7 @@ keywords = [("new",       TokenNew),
             ("while",     TokenWhile),
             ("do",        TokenDo),
             ("for",       TokenFor),
+            ("length",    TokenLength),
             ("return",    TokenReturn)]
 
 lookupID :: String -> TokenClass
@@ -130,6 +131,7 @@ data TokenClass
   | TokenWhile
   | TokenDo
   | TokenFor
+  | TokenLength
   | TokenReturn
   | TokenTrue
   | TokenFalse

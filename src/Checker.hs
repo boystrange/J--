@@ -68,101 +68,114 @@ initializeEntry x = do
   entry <- getEntry x
   setEntry x (entry { SymbolTable.entryInit = True })
 
-checkStmt :: Type -> Statement -> Checker (Bool, Typed.Statement)
-checkStmt rt Skip = return (False, Typed.Skip)
+checkStmt :: Type -> Statement -> Checker Typed.Statement
+checkStmt rt Skip = return Typed.Skip
 checkStmt rt (If expr stmt1 stmt2) = do
   prop <- checkProp expr
-  (b1, stmt1') <- checkStmt rt stmt1
-  (b2, stmt2') <- checkStmt rt stmt2
-  return (b1 && b2, Typed.If prop stmt1' stmt2')
+  stmt1' <- checkStmt rt stmt1
+  stmt2' <- checkStmt rt stmt2
+  return $ Typed.If prop stmt1' stmt2'
 checkStmt rt (While expr stmt) = do
   prop <- checkProp expr
-  (_, stmt') <- checkStmt rt stmt
-  return (False, Typed.While prop stmt')
+  stmt' <- checkStmt rt stmt
+  return $ Typed.While prop stmt'
 checkStmt rt (Do stmt expr) = do
-  (b, stmt') <- checkStmt rt stmt
+  stmt' <- checkStmt rt stmt
   prop <- checkProp expr
-  return (b, Typed.Do stmt' prop)
+  return $ Typed.Do stmt' prop
 checkStmt rt (Return Nothing) = do
-  checkType VoidType rt
-  return (True, Typed.Return VoidType Nothing)
+  unless (rt == VoidType) $ throw $ ErrorTypeMismatch rt VoidType
+  return $ Typed.Return VoidType Nothing
 checkStmt rt (Return (Just expr)) = do
-  (t, expr') <- checkExpr expr
-  cast <- checkType rt t
-  return (True, Typed.Return t (Just (cast expr')))
+  expr' <- checkExpr expr
+  return $ Typed.Return rt (Just (widen rt expr'))
 checkStmt rt (Block stmt) = do
   pushScope
-  (b, stmt') <- checkStmt rt stmt
+  stmt' <- checkStmt rt stmt
   popScope
-  return (b, stmt')
+  return stmt'
 checkStmt rt (Seq stmt1 stmt2) = do
-  (b1, stmt1') <- checkStmt rt stmt1
-  if b1
-    then return (True, stmt1')
-    else do
-      (b2, stmt2') <- checkStmt rt stmt2
-      return (b2, Typed.Seq stmt1' stmt2')
+  stmt1' <- checkStmt rt stmt1
+  if returns stmt1
+    then return stmt1'
+    else (Typed.Seq stmt1' <$> checkStmt rt stmt2)
 checkStmt rt (Local t x) = do
   newEntry x t
-  return (False, Typed.Skip)
+  return Typed.Skip
 checkStmt rt (Ignore expr) = do
-  (t, expr') <- checkExpr expr
-  return (False, Typed.Expression expr')
+  expr' <- checkExpr expr
+  return $ Typed.Ignore expr'
 
-conversion :: Type -> Type -> Typed.Expression -> Typed.Expression
-conversion s t | s == t = id
-conversion (BaseType s) (BaseType t) = Typed.Conversion s t
-
-checkType :: Type -> Type -> Checker (Typed.Expression -> Typed.Expression)
-checkType et at | at `subtype` et = return (conversion at et)
-checkType et at = throw $ ErrorTypeMismatch et at
-
-checkExpr :: Expression -> Checker (Type, Typed.Expression)
-checkExpr (Literal lit) = return (BaseType (typeOfLiteral lit), Typed.Literal lit)
+checkExpr :: Expression -> Checker Typed.Expression
+checkExpr (Literal lit) = return $ Typed.Literal lit
 checkExpr (Call x exprs) = do
-  t <- getType x
-  (rt, ts) <- unpackMethodType x (length exprs) t
-  exprs' <- mapM (uncurry checkExprType) (zip exprs ts)
-  return (rt, Typed.Call (MethodType rt ts) x exprs')
+  (rt, ts) <- getMethodType x
+  unless (length ts == length exprs) $ throw $ ErrorWrongNumberOfArguments x (length ts) (length exprs)
+  exprs' <- mapM checkExpr exprs
+  return $ Typed.Call rt x (map (uncurry widen) (zip ts exprs'))
 checkExpr (New t expr) = do
-  (s, expr') <- checkExpr expr
-  cast <- checkType (BaseType IntType) s
-  return (ArrayType t, Typed.New t (cast expr'))
-checkExpr (Ref ref) = do
-  (t, ref') <- checkRef ref
-  return (t, Typed.Ref ref')
+  expr' <- checkExpr expr
+  return $ Typed.New t (widen IntType expr')
+checkExpr (Ref ref) = Typed.Ref <$> checkRef ref
 checkExpr (Unary op expr) = do
-  (t, expr') <- checkExpr expr
-  s <- checkUnary op t
-  return (s, Typed.Unary s op expr')
+  expr' <- checkExpr expr
+  let t = typeof expr'
+  unless (isNumeric t) $ throw $ ErrorNumberExpected t
+  return $ Typed.Unary t op expr'
 checkExpr (Binary op expr1 expr2) = do
-  (t1, expr1') <- checkExpr expr1
-  (t2, expr2') <- checkExpr expr2
-  t <- checkBinary op t1 t2
-  return (t, Typed.Binary t op expr1' expr2')
+  expr1' <- checkExpr expr1
+  expr2' <- checkExpr expr2
+  let t1 = typeof expr1'
+  let t2 = typeof expr2'
+  case merge t1 t2 of
+    Just t -> return $ Typed.Binary t op (widen t expr1') (widen t expr2')
+    Nothing | stringable op t1 t2 -> return $ Typed.Binary StringType op (string expr1') (string expr2')
+    Nothing -> throw $ ErrorBinaryOperator op t1 t2
 checkExpr (Assign ref expr) = do
-  (t, ref') <- checkRef ref
-  expr' <- checkExprType expr t
-  return (t, Typed.Assign ref' expr')
-checkExpr (IncDec op ref) = do
-  (t, ref') <- checkRef ref
-  s <- checkIncDec op t
-  return (s, Typed.IncDec s op ref')
+  ref' <- checkRef ref
+  expr' <- checkExpr expr
+  return $ Typed.Assign ref' (widen (typeof ref') expr')
+checkExpr (Step step sign ref) = do
+  ref' <- checkRef ref
+  let t = typeof ref'
+  unless (isNumeric t) $ throw $ ErrorNumberExpected t
+  return $ Typed.Step t step sign ref'
 checkExpr (Cast t expr) = do
-  expr' <- checkExprType expr t -- cast != subtyping
-  return (t, expr')
-checkExpr expr = do
-  prop <- checkProp expr
-  return (BaseType BooleanType, Typed.FromProposition prop)
+  expr' <- checkExpr expr
+  return $ cast t expr'
+checkExpr expr = Typed.FromProposition <$> checkProp expr
+
+stringable :: BinOp -> Type -> Type -> Bool
+stringable ADD t s = isString t || isString s
+stringable _   _ _ = False
+
+string :: Typed.Expression -> Typed.Expression
+string expr = if isString t then expr else Typed.StringOf t expr
+  where
+    t = typeof expr
+
+widen :: Type -> Typed.Expression -> Typed.Expression
+widen t expr | widening s t = if t == s then expr else Typed.Convert t expr
+             | otherwise    = throw $ ErrorInvalidWidening s t
+  where
+    s = typeof expr
+
+cast :: Type -> Typed.Expression -> Typed.Expression
+cast t expr = if t == s then expr else Typed.Convert t expr
+  where
+    s = typeof expr
 
 checkProp :: Expression -> Checker Typed.Proposition
 checkProp (Literal (Boolean True)) = return Typed.TrueProp
 checkProp (Literal (Boolean False)) = return Typed.FalseProp
 checkProp (Rel op expr1 expr2) = do
-  (t1, expr1') <- checkExpr expr1
-  (t2, expr2') <- checkExpr expr2
-  t <- checkRel op t1 t2
-  return $ Typed.Rel t op expr1' expr2'
+  expr1' <- checkExpr expr1
+  expr2' <- checkExpr expr2
+  let t1 = typeof expr1'
+  let t2 = typeof expr2'
+  case merge t1 t2 of
+    Just t -> return $ Typed.Rel t op (widen t expr1') (widen t expr2')
+    Nothing -> throw $ ErrorBinaryRelation op t1 t2
 checkProp (And prop1 prop2) = do
   prop1' <- checkProp prop1
   prop2' <- checkProp prop2
@@ -172,56 +185,38 @@ checkProp (Or prop1 prop2) = do
   prop2' <- checkProp prop2
   return $ Typed.Or prop1' prop2'
 checkProp (Not prop) = Typed.Not <$> checkProp prop
-checkProp expr = Typed.FromExpression <$> checkExprType expr (BaseType BooleanType)
+checkProp expr = Typed.FromExpression <$> widen BooleanType <$> checkExpr expr
 
-unpackMethodType :: Id -> Int -> Type -> Checker (Type, [Type])
-unpackMethodType x n (MethodType rt ts) | n == length ts = return (rt, ts)
-                                        | otherwise = throw $ ErrorWrongNumberOfArguments x (length ts) n
-unpackMethodType x _ t = throw $ ErrorNotMethod x t
+getMethodType :: Id -> Checker (Type, [Type])
+getMethodType x = do
+  t <- getType x
+  case t of
+    MethodType rt ts -> return (rt, ts)
+    t -> throw $ ErrorMethodExpected x t
 
-unpackArrayType :: Reference -> Type -> Checker Type
-unpackArrayType ref (ArrayType t) = return t
-unpackArrayType ref t = throw $ ErrorArrayExpected ref t
+getArrayType :: Typed.Reference -> Checker Type
+getArrayType ref =
+  case typeof ref of
+    ArrayType t -> return t
+    t           -> throw $ ErrorArrayExpected t
 
-checkRef :: Reference -> Checker (Type, Typed.Reference)
+checkRef :: Reference -> Checker Typed.Reference
 checkRef (IdRef x) = do
   t <- getType x
   n <- getSlot x
-  return (t, Typed.IdRef t n x)
+  return $ Typed.IdRef t n x
 checkRef (ArrayRef ref expr) = do
-  (t, ref') <- checkRef ref
-  s <- unpackArrayType ref t
-  expr' <- checkExprType expr (BaseType IntType)
-  return (s, Typed.ArrayRef s ref' expr')
-
-checkUnary :: UnOp -> Type -> Checker Type
-checkUnary op (BaseType dt) | Just ds <- unary op dt = return (BaseType ds)
-checkUnary op t = throw $ ErrorUnaryOperator op t
-
-checkBinary :: BinOp -> Type -> Type -> Checker Type
-checkBinary op t1 t2 | BaseType dt <- merge t1 t2
-                     , Just ds <- binary op dt = return (BaseType ds)
-checkBinary op t1 t2 = throw $ ErrorBinaryOperator op t1 t2
-
-checkRel :: RelOp -> Type -> Type -> Checker Type
-checkRel op t s | BaseType dt <- merge t s = return (BaseType dt)
-checkRel op t s = throw $ ErrorBinaryRelation op t s
-
-checkIncDec :: IncDecOp -> Type -> Checker Type
-checkIncDec op (BaseType dt) | Just ds <- incdec dt = return (BaseType ds)
-checkIncDec op t = throw $ ErrorIncDecOperator op t
-
-checkExprType :: Expression -> Type -> Checker Typed.Expression
-checkExprType expr t = do
-  (s, expr') <- checkExpr expr
-  conv <- checkType t s
-  return (conv expr')
+  ref' <- checkRef ref
+  expr' <- checkExpr expr
+  t <- getArrayType ref'
+  return $ Typed.ArrayRef t ref' (widen IntType expr')
 
 checkMethod :: Method -> Checker Typed.Method
 checkMethod method@(Method t x args stmt) = do
   pushScope
   forM_ args (uncurry newEntry)
-  (ret, stmt') <- checkStmt t stmt
+  stmt' <- checkStmt t stmt
+  let ret = returns stmt
   when (not ret && t /= VoidType) $ throw $ ErrorMissingReturn x
   let stmt'' = if ret then stmt' else Typed.Seq stmt' (Typed.Return VoidType Nothing)
   popScope
