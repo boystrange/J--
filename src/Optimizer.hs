@@ -23,7 +23,7 @@ optimize = aux
         aux [] = []
         aux (GOTO l1 : LABEL l2 : is) | l1 == l2 = aux (LABEL l2 : is)
         aux (DUP s1 : STORE t n : POP s2 : is) | s1 == s2 = aux (STORE t n : is)
-        aux (IFCMP t rel l1 : GOTO l2 : LABEL l3 : is) | l1 == l3 = aux (IFCMP t (notRel rel) l2 : is)
+        aux (IFCMP t rel l1 : GOTO l2 : LABEL l3 : is) | l1 == l3 = aux (IFCMP t (notRel rel) l2 : LABEL l3 : is)
         aux (i : is) = i : aux is
 
 optimizeMethod :: Method -> Method
