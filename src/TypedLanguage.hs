@@ -8,10 +8,6 @@ data Reference
   = IdRef Type Slot Id
   | ArrayRef Type Reference Expression
 
-instance Typed Reference where
-  typeof (IdRef t _ _) = t
-  typeof (ArrayRef t _ _) = t
-
 data Expression
   = Literal Literal
   | Ref Reference
@@ -24,6 +20,30 @@ data Expression
   | Convert Type Expression
   | StringOf Type Expression
   | FromProposition Proposition
+
+data Proposition
+  = TrueProp
+  | FalseProp
+  | Rel Type RelOp Expression Expression
+  | And Proposition Proposition
+  | Or Proposition Proposition
+  | Not Proposition
+  | FromExpression Expression
+
+data Statement
+  = Skip
+  | If Proposition Statement Statement
+  | While Proposition Statement
+  | Do Statement Proposition
+  | Return Type (Maybe Expression)
+  | Ignore Expression
+  | Seq Statement Statement
+
+data Method = Method Type Id Statement
+
+instance Typed Reference where
+  typeof (IdRef t _ _) = t
+  typeof (ArrayRef t _ _) = t
 
 instance Typed Expression where
   typeof (Literal lit) = typeof lit
@@ -38,24 +58,3 @@ instance Typed Expression where
   typeof (StringOf _ _) = StringType
   typeof (FromProposition _) = BooleanType
 
-data Proposition
-  = TrueProp
-  | FalseProp
-  | Rel Type RelOp Expression Expression
-  | And Proposition Proposition
-  | Or Proposition Proposition
-  | Not Proposition
-  | FromExpression Expression
-
-type PropositionOrExpression = Either Proposition Expression
-
-data Statement
-  = Skip
-  | If Proposition Statement Statement
-  | While Proposition Statement
-  | Do Statement Proposition
-  | Return Type (Maybe Expression)
-  | Ignore Expression
-  | Seq Statement Statement
-
-data Method = Method Type Id Statement

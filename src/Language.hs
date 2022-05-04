@@ -27,6 +27,7 @@ data Literal
   | Double Double
   | Char Char
   | String String
+  deriving Eq
 
 data BinOp
   = ADD
@@ -34,6 +35,7 @@ data BinOp
   | MUL
   | DIV
   | MOD
+  deriving Eq
 
 data RelOp
   = JLT
@@ -42,6 +44,7 @@ data RelOp
   | JGE
   | JEQ
   | JNE
+  deriving Eq
 
 notRel :: RelOp -> RelOp
 notRel JLT = JGE

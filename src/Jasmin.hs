@@ -69,6 +69,7 @@ data Code
     | BINARY Type BinOp
     | INVOKE Id Type
     | CONVERT Type Type
+    deriving Eq
 
 data Method = Method Id Type [Code]
 
