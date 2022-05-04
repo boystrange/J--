@@ -43,6 +43,14 @@ data RelOp
   | JEQ
   | JNE
 
+notRel :: RelOp -> RelOp
+notRel JLT = JGE
+notRel JLE = JGT
+notRel JGT = JLE
+notRel JGE = JLT
+notRel JEQ = JNE
+notRel JNE = JEQ
+
 data SignOp = NEG | POS
   deriving Eq
 

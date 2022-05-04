@@ -47,7 +47,7 @@ instance Ord Id where
 type Slot = Int
 
 data Label = L Int
-    deriving Eq
+    deriving (Eq, Ord)
 
 instance Enum Label where
   toEnum = L

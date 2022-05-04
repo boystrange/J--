@@ -28,6 +28,7 @@ import Parser
 import qualified Checker
 import qualified Compiler
 import qualified Jasmin
+import qualified Optimizer
 
 import System.Console.GetOpt
 import System.IO (stdout, stderr, hFlush, hPutStrLn)
@@ -54,7 +55,7 @@ main = do
     Right (methods, stmts) -> do
       let stmt = foldr Seq Skip stmts
       methods <- Checker.checkMethods (Method VoidType (Id Somewhere "main") [] stmt : methods)
-      methods' <- Compiler.compileMethods methods
+      methods' <- Optimizer.optimizeMethods <$> Compiler.compileMethods methods
       forM_ methods' Jasmin.printMethod
 
   -- where

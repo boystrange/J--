@@ -19,5 +19,3 @@ int recursive_fact(int n) {
   if (n == 0) return 1;
   else return n * recursive_fact(n - 1);
 }
-
-

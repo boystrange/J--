@@ -30,7 +30,8 @@ executable j--
                      SymbolTable,
                      Checker,
                      Jasmin,
-                     Compiler
+                     Compiler,
+                     Optimizer
   other-extensions:  CPP
 
   build-depends:     base >=4.9,
