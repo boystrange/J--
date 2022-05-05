@@ -238,6 +238,9 @@ Id
 getText :: Token -> String
 getText (Token _ (TokenID x)) = x
 getText (Token _ (TokenINT x)) = x
+getText (Token _ (TokenFLOAT x)) = x
+getText (Token _ (TokenDOUBLE x)) = x
+getText (Token _ (TokenCHAR x)) = x
 getText (Token _ (TokenSTRING x)) = x
 
 getPos :: Token -> (Int, Int)
