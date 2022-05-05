@@ -64,25 +64,6 @@ one DoubleType = Double 1
 
 data StepOp = PRE | POST
 
-binary :: BinOp -> Type -> Maybe Type
-binary ADD t          | isNumeric t = Just t
-binary ADD CharType   = Just IntType
-binary ADD StringType = Just StringType
-binary SUB t          | isNumeric t = Just t
-binary SUB CharType   = Just IntType
-binary MUL t          | isNumeric t = Just t
-binary DIV t          | isNumeric t = Just t
-binary MOD IntType    = Just IntType
-binary _   _          = Nothing
-
-unary :: SignOp -> Type -> Maybe Type
-unary _ t | isNumeric t = Just t
-unary _ _               = Nothing
-
-incdec :: Type -> Maybe Type
-incdec t | isEnumeration t = Just t
-incdec _        = Nothing
-
 class Typed a where
   typeof :: a -> Type
 
