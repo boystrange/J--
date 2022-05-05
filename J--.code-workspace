@@ -19,7 +19,9 @@
 			"**/*.lock": true,
 			"**/Parser.hs": true,
 			"**/Parser.info": true,
-			"**/Lexer.hs": true
+			"**/Lexer.hs": true,
+			"**/*.j": true,
+			"**/*.class": true
 		}
 	}
 }
