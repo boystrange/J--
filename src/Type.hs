@@ -48,6 +48,12 @@ isEnumeration :: Type -> Bool
 isEnumeration CharType = True
 isEnumeration t = isNumeric t
 
+isStringable :: Type -> Bool
+isStringable VoidType = False
+isStringable (ArrayType _) = False
+isStringable (MethodType _ _) = False
+isStringable _ = True
+
 sizeOf :: Type -> Int
 sizeOf VoidType = 0
 sizeOf (MethodType _ _) = 0

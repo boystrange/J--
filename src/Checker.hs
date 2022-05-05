@@ -152,7 +152,7 @@ checkExpr (Cast t expr) = do
 checkExpr expr = Typed.FromProposition <$> checkProp expr
 
 stringable :: BinOp -> Type -> Type -> Bool
-stringable ADD t s = isString t || isString s
+stringable ADD t s = (isString t || isString s) && isStringable t && isStringable s
 stringable _   _ _ = False
 
 string :: Typed.Expression -> Typed.Expression

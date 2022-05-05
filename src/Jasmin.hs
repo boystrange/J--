@@ -169,6 +169,9 @@ outputClass cls methods = do
     forM_ methods (outputMethod output)
     hClose handle
 
+library :: String -> Type -> [Type] -> Code
+library m t ts = INVOKE "StandardLibrary" (Id Somewhere m) (MethodType t ts)
+
 instance Jasmin Code where
     jasmin (LABEL l)      = show l ++ ":"
     jasmin (GOTO l)       = "    goto " ++ show l

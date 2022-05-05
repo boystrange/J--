@@ -144,11 +144,16 @@ compileExpr (Unary t op expr) = do
 compileExpr (Binary t op expr1 expr2) = do
     compileExpr expr1
     compileExpr expr2
-    emit $ Jasmin.BINARY t op
+    if t == StringType && op == ADD
+        then emit $ Jasmin.library "String_concat" StringType [StringType, StringType]
+        else emit $ Jasmin.BINARY t op
 compileExpr (Step t step sign ref) = compileStep t step sign ref
 compileExpr (Convert t expr) = do
     compileExpr expr
     emit $ Jasmin.CONVERT (typeof expr) t
+compileExpr (StringOf t expr) = do
+    compileExpr expr
+    unless (t == StringType) $ emit $ Jasmin.library (show t ++ "_to_String") StringType [t]
 compileExpr (FromProposition prop) = do
     tt <- newLabel
     ff <- newLabel
