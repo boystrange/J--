@@ -230,7 +230,8 @@ checkMethod method@(Method t x args stmt) = do
 
 library :: [(Id, Type)]
 library =
-  [ (Id Somewhere "println",           MethodType VoidType   [StringType])
+  [ (Id Somewhere "print",             MethodType VoidType   [StringType])
+  , (Id Somewhere "println",           MethodType VoidType   [StringType])
   , (Id Somewhere "boolean_to_string", MethodType StringType [BooleanType])
   , (Id Somewhere "int_to_string",     MethodType StringType [IntType])
   , (Id Somewhere "float_to_string",   MethodType StringType [FloatType])
