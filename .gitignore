@@ -1,4 +1,6 @@
 *~
+*.j
+*.class
 .stack-work
 *.lock
 Parser.hs

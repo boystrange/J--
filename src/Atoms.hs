@@ -28,21 +28,21 @@ instance Show Pos where
   show (At (l, c)) = " [line " ++ show l ++ "]"
 
 data Id = Id { identifierPos :: Pos
-             , identifierText :: String }
+             , identifierName :: String }
 instance Show Id where
-  show = identifierText
+  show = identifierName
 
 -- |Show an identifier along with its position in the source code, if known.
 showWithPos :: Id -> String
-showWithPos u = identifierText u ++ show (identifierPos u)
+showWithPos u = show u ++ show (identifierPos u)
 
 -- |Two identifiers are the same regardless of the position in which they occur.
 instance Eq Id where
-  (==) u v = identifierText u == identifierText v
+  (==) u v = show u == show v
 
 -- |Two identifiers are ordered regardless of the position in which they occur.
 instance Ord Id where
-  compare u v = compare (identifierText u) (identifierText v)
+  compare u v = compare (show u) (show v)
 
 type Slot = Int
 

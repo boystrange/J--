@@ -38,8 +38,17 @@ $alpha   = [A-Za-z]
 @next    = $alpha | $digit | \_
 @id      = $alpha @next*
 @nat     = $digit+
-@float   = (@nat \. @nat?) | (@nat? \. @nat)
-@string  = \"[^\"]*\"
+@sign    = [\+\-]
+@minus   = \-
+@exp     = [eE] @sign? @nat
+@int     = @minus? @nat
+@float   = (@nat \. @nat?) | (@nat? \. @nat) @exp?
+@double  = @float [dD]
+@escape  = \\ [\\\'\"abfnrt]
+@stringc = @escape | [^\"\\]
+@string  = \" @stringc* \"
+@charc   = @escape | [^\'\\]
+@char    = \' @charc \'
 
 tokens :-
   $white+ ;
@@ -72,8 +81,12 @@ tokens :-
   "||"    { lex' TokenOR          }
   "?"     { lex' TokenQMARK       }
   "!"     { lex' TokenEMARK       }
-  @id     { lex lookupID         }
-  @nat    { lex TokenINT          }
+  @id     { lex lookupID          }
+  @int    { lex TokenINT          }  
+  @float  { lex TokenFLOAT        }
+  @double { lex (TokenDOUBLE . init) }
+  @char   { lex TokenCHAR         }
+  @string { lex TokenSTRING       }
 
 {
 -- To improve error messages, We keep the path of the file we are
@@ -138,7 +151,7 @@ data TokenClass
   | TokenINT String
   | TokenFLOAT String
   | TokenDOUBLE String
-  | TokenCHAR Char
+  | TokenCHAR String
   | TokenSTRING String
   | TokenID String
   | TokenEQQ

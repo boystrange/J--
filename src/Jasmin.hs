@@ -12,6 +12,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad.State.Lazy (StateT)
 import qualified Control.Monad.State.Lazy as State
+import System.IO (Handle, hClose, hFlush, hPutStrLn, openFile, IOMode(..))
 
 data JasminCheckerState = JasminCheckerState { frame :: Int
                                              , stack :: Int
@@ -87,7 +88,7 @@ data Code
     | IFCMP Type RelOp Label
     | UNARY Type SignOp
     | BINARY Type BinOp
-    | INVOKE Id Type
+    | INVOKE String Id Type
     | CONVERT Type Type
     deriving Eq
 
@@ -120,7 +121,7 @@ delta (IF _ _) = -1
 delta (IFCMP t _ _) = negate (2 * sizeOf t)
 delta (UNARY _ _) = 0
 delta (BINARY t _) = negate (sizeOf t)
-delta (INVOKE _ (MethodType t ts)) = sizeOf t - sum (map sizeOf ts)
+delta (INVOKE _ _ (MethodType t ts)) = sizeOf t - sum (map sizeOf ts)
 delta (CONVERT t s) = sizeOf s - sizeOf t
 
 checkLabel :: Label -> JasminChecker ()
@@ -150,35 +151,44 @@ checkMethod is = forM_ is checkCode
 
 data Method = Method Id Type [Code]
 
-printMethod :: Method -> IO ()
-printMethod (Method m t is) = do
+outputMethod :: (String -> IO ()) -> Method -> IO ()
+outputMethod output (Method m t is) = do
     state <- State.execStateT (checkMethod is) (initialJasminCheckerState t)
-    putStrLn $ ".method public " ++ show m ++ jasmin t
-    putStrLn $ "    .locals " ++ show (frame state)
-    putStrLn $ "    .stack " ++ show (maxStack state)
-    forM_ is (putStrLn . show)
-    putStrLn $ ".end method"
+    output $ ".method public static " ++ show m ++ jasmin t
+    output $ "    .limit locals " ++ show (frame state)
+    output $ "    .limit stack " ++ show (maxStack state)
+    forM_ is (output . jasmin)
+    output $ ".end method"
 
-instance Show Code where
-    show (LABEL l)      = show l ++ ":"
-    show (GOTO l)       = "    goto " ++ show l
-    show (LDC lit)      = "    ldc" ++ literalDouble lit ++ " " ++ jasmin lit
-    show (LOAD t i)     = "    " ++ typePrefix t ++ "load " ++ show i
-    show (STORE t i)    = "    " ++ typePrefix t ++ "store " ++ show i
-    show (ALOAD t)      = "    " ++ typePrefix t ++ "aload"
-    show (ASTORE t)     = "    " ++ typePrefix t ++ "astore"
-    show (CMP t)        = "    " ++ typePrefix t ++ "cmpl"
-    show NOP            = "    nop"
-    show (POP t)        = "    pop" ++ typeDouble t
-    show (DUP t)        = "    dup" ++ typeDouble t
-    show (DUP_X2 t)     = "    dup" ++ typeDouble t ++ "_x2"
-    show (RETURN t)     = "    " ++ typePrefix t ++ "return"
-    show (IF op l)      = "    if" ++ jasmin op ++ " " ++ show l
-    show (IFCMP t op l) = "    if_" ++ typePrefix t ++ "cmp" ++ jasmin op ++ " " ++ show l
-    show (UNARY t op)   = "    " ++ typePrefix t ++ jasmin op
-    show (BINARY t op)  = "    " ++ typePrefix t ++ jasmin op
-    show (INVOKE m t)   = "    invokestatic " ++ show m ++ jasmin t
-    show (CONVERT t s)  = "    " ++ conversion t s
+outputClass :: String -> [Method] -> IO ()
+outputClass cls methods = do
+    handle <- openFile (cls ++ ".j") WriteMode
+    let output = hPutStrLn handle
+    output $ ".class public " ++ cls
+    output $ ".super java/lang/Object"
+    forM_ methods (outputMethod output)
+    hClose handle
+
+instance Jasmin Code where
+    jasmin (LABEL l)      = show l ++ ":"
+    jasmin (GOTO l)       = "    goto " ++ show l
+    jasmin (LDC lit)      = "    ldc" ++ literalDouble lit ++ " " ++ jasmin lit
+    jasmin (LOAD t i)     = "    " ++ typePrefix t ++ "load " ++ show i
+    jasmin (STORE t i)    = "    " ++ typePrefix t ++ "store " ++ show i
+    jasmin (ALOAD t)      = "    " ++ typePrefix t ++ "aload"
+    jasmin (ASTORE t)     = "    " ++ typePrefix t ++ "astore"
+    jasmin (CMP t)        = "    " ++ typePrefix t ++ "cmpl"
+    jasmin NOP            = "    nop"
+    jasmin (POP t)        = "    pop" ++ typeDouble t
+    jasmin (DUP t)        = "    dup" ++ typeDouble t
+    jasmin (DUP_X2 t)     = "    dup" ++ typeDouble t ++ "_x2"
+    jasmin (RETURN t)     = "    " ++ typePrefix t ++ "return"
+    jasmin (IF op l)      = "    if" ++ jasmin op ++ " " ++ show l
+    jasmin (IFCMP t op l) = "    if_" ++ typePrefix t ++ "cmp" ++ jasmin op ++ " " ++ show l
+    jasmin (UNARY t op)   = "    " ++ typePrefix t ++ jasmin op
+    jasmin (BINARY t op)  = "    " ++ typePrefix t ++ jasmin op
+    jasmin (INVOKE c m t) = "    invokestatic " ++ c ++ "/" ++ show m ++ jasmin t
+    jasmin (CONVERT t s)  = "    " ++ conversion t s
 
 conversion :: Type -> Type -> String
 conversion t StringType = "invokestatic stringOf(" ++ jasmin t ++ ")Ljava/lang/String;"

@@ -15,7 +15,7 @@
 
 -- Copyright 2022 Luca Padovani
 
-module Checker (checkMethods) where
+module Checker (checkClass) where
 
 import Control.Monad.State.Lazy (StateT)
 import qualified Control.Monad.State.Lazy as State
@@ -57,11 +57,16 @@ getType x = SymbolTable.entryType <$> getEntry x
 getSlot :: Id -> Checker Slot
 getSlot x = SymbolTable.entrySlot <$> getEntry x
 
+getClass :: Id -> Checker String
+getClass x = do
+  Just cls <- SymbolTable.entryClass <$> getEntry x
+  return cls
+
 setEntry :: Id -> Entry -> Checker ()
 setEntry x entry = modifySymbolTable (SymbolTable.set x entry)
 
-newEntry :: Id -> Type -> Checker ()
-newEntry x t = modifySymbolTable (SymbolTable.new x t)
+newEntry :: Maybe String -> Id -> Type -> Checker ()
+newEntry mcls x t = modifySymbolTable (SymbolTable.new mcls x t)
 
 initializeEntry :: Id -> Checker ()
 initializeEntry x = do
@@ -100,7 +105,7 @@ checkStmt rt (Seq stmt1 stmt2) = do
     then return stmt1'
     else (Typed.Seq stmt1' <$> checkStmt rt stmt2)
 checkStmt rt (Local t x) = do
-  newEntry x t
+  newEntry Nothing x t
   return Typed.Skip
 checkStmt rt (Ignore expr) = do
   expr' <- checkExpr expr
@@ -110,9 +115,10 @@ checkExpr :: Expression -> Checker Typed.Expression
 checkExpr (Literal lit) = return $ Typed.Literal lit
 checkExpr (Call x exprs) = do
   (rt, ts) <- getMethodType x
+  cls <- getClass x
   unless (length ts == length exprs) $ throw $ ErrorWrongNumberOfArguments x (length ts) (length exprs)
   exprs' <- mapM checkExpr exprs
-  return $ Typed.Call rt x (map (uncurry widen) (zip ts exprs'))
+  return $ Typed.Call rt cls x (map (uncurry widen) (zip ts exprs'))
 checkExpr (New t expr) = do
   expr' <- checkExpr expr
   return $ Typed.New t (widen IntType expr')
@@ -214,7 +220,7 @@ checkRef (ArrayRef ref expr) = do
 checkMethod :: Method -> Checker Typed.Method
 checkMethod method@(Method t x args stmt) = do
   pushScope
-  forM_ args (uncurry newEntry)
+  forM_ args (uncurry (newEntry Nothing))
   stmt' <- checkStmt t stmt
   let ret = returns stmt
   when (not ret && t /= VoidType) $ throw $ ErrorMissingReturn x
@@ -222,13 +228,23 @@ checkMethod method@(Method t x args stmt) = do
   popScope
   return $ Typed.Method (snd (typeOfMethod method)) x stmt''
 
-checkMethods :: [Method] -> IO [Typed.Method]
-checkMethods methods = do
-  putStrLn $ show $ length methods
+library :: [(Id, Type)]
+library =
+  [ (Id Somewhere "println",           MethodType VoidType   [StringType])
+  , (Id Somewhere "boolean_to_string", MethodType StringType [BooleanType])
+  , (Id Somewhere "int_to_string",     MethodType StringType [IntType])
+  , (Id Somewhere "float_to_string",   MethodType StringType [FloatType])
+  , (Id Somewhere "double_to_string",  MethodType StringType [DoubleType])
+  , (Id Somewhere "char_to_string",    MethodType StringType [CharType])
+  ]
+
+checkClass :: String -> [Method] -> IO [Typed.Method]
+checkClass cls methods = do
   State.evalStateT aux (CheckerState { table = SymbolTable.empty })
   where
     aux :: Checker [Typed.Method]
     aux = do
       pushScope
-      forM_ methods (uncurry newEntry . typeOfMethod)
+      forM_ library (uncurry (newEntry (Just "StandardLibrary")))
+      forM_ methods (uncurry (newEntry (Just cls)) . typeOfMethod)
       mapM checkMethod methods

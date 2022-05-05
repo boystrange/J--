@@ -19,3 +19,7 @@ int recursive_fact(int n) {
   if (n == 0) return 1;
   else return n * recursive_fact(n - 1);
 }
+
+println(int_to_string(recursive_fibo(10)));
+println(int_to_string(recursive_fact(10)));
+println(int_to_string(iterative_fibo(10)));

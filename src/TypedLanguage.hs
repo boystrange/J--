@@ -11,7 +11,7 @@ data Reference
 data Expression
   = Literal Literal
   | Ref Reference
-  | Call Type Id [Expression]
+  | Call Type String Id [Expression]
   | New Type Expression
   | Assign Reference Expression
   | Unary Type SignOp Expression
@@ -48,7 +48,7 @@ instance Typed Reference where
 instance Typed Expression where
   typeof (Literal lit) = typeof lit
   typeof (Ref ref) = typeof ref
-  typeof (Call rt _ _) = rt
+  typeof (Call rt _ _ _) = rt
   typeof (New t _) = ArrayType t
   typeof (Assign ref _) = typeof ref
   typeof (Unary t _ _) = t

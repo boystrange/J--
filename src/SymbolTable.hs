@@ -7,9 +7,10 @@ import Exceptions
 import Control.Exception (throw)
 
 data Entry
-  = Entry { entryType :: Type
-          , entrySlot :: Int
-          , entryInit :: Bool }
+  = Entry { entryType  :: Type
+          , entryClass :: Maybe String
+          , entrySlot  :: Int
+          , entryInit  :: Bool }
 
 type Env = [(Id, Entry)]
 
@@ -34,14 +35,15 @@ has x = any (\env -> x `elem` map fst env)
 set :: Id -> Entry -> SymbolTable -> SymbolTable
 set x entry = map (update x entry)
 
-new :: Id -> Type -> SymbolTable -> SymbolTable
-new _ _ [] = error "add entry with empty symbol table"
-new x _ envs | has x envs = throw $ ErrorMultipleDeclarations x
-new x t st@(env : envs) = ((x, entry) : env) : envs
+new :: Maybe String -> Id -> Type -> SymbolTable -> SymbolTable
+new _ _ _ [] = error "add entry with empty symbol table"
+new _ x _ envs | has x envs = throw $ ErrorMultipleDeclarations x
+new c x t st@(env : envs) = ((x, entry) : env) : envs
   where
-    entry = Entry { entryType = t
-                  , entrySlot = slots st
-                  , entryInit = False }
+    entry = Entry { entryType  = t
+                  , entryClass = c
+                  , entrySlot  = slots st
+                  , entryInit  = False }
 
 push :: SymbolTable -> SymbolTable
 push envs = [] : envs

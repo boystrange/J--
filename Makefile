@@ -44,6 +44,12 @@ sync:
 info:
 	@$(STACK) exec happy -- -i src/Parser.y
 
+%.j: examples/%.java
+	stack run $<
+
+%.class: %.j
+	java -jar jasmin.jar $<
+
 %.check_ok:
 	@faircheck --log $(@:%.check_ok=%) || echo
 

@@ -31,14 +31,14 @@ import qualified Jasmin
 import qualified Optimizer
 
 import System.Console.GetOpt
-import System.IO (stdout, stderr, hFlush, hPutStrLn)
+import System.IO (stdout, stderr, hFlush, hPutStrLn, openFile, IOMode(..))
 import System.Exit (exitWith, ExitCode(ExitSuccess, ExitFailure))
 import System.Environment (getProgName, getArgs)
 import Control.Monad (forM_, unless, when)
 import Control.Exception (catch)
 import qualified Data.Version
 import Data.Time (getCurrentTime, diffUTCTime)
-import System.FilePath.Posix (takeFileName)
+import System.FilePath.Posix (takeFileName, takeBaseName)
 
 -- |Version of the program.
 version :: Data.Version.Version
@@ -50,13 +50,15 @@ main = do
   progName <- getProgName
   (args, file) <- getArgs >>= parse progName
   source <- if file == "-" then getContents else readFile file
+  let cls = if file == "-" then "default" else takeBaseName file
   case parseProgram file source of
     Left msg -> printWarning msg
     Right (methods, stmts) -> do
       let stmt = foldr Seq Skip stmts
-      methods <- Checker.checkMethods (Method VoidType (Id Somewhere "main") [] stmt : methods)
-      methods' <- Optimizer.optimizeMethods <$> Compiler.compileMethods methods
-      forM_ methods' Jasmin.printMethod
+      let main = Method VoidType (Id Somewhere "main") [(Id Somewhere "_args", ArrayType StringType)] stmt
+      methods <- Checker.checkClass cls (main : methods)
+      methods' <- Optimizer.optimizeMethods <$> Compiler.compileClass methods
+      Jasmin.outputClass cls methods'
 
   -- where
   --   check :: FilePath -> [Flag] -> [ProcessDef] -> IO ()

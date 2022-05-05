@@ -93,6 +93,7 @@ import Control.Exception
 %left '+' '-'
 %left '*' '/' '%'
 %nonassoc '!' UNARY
+%nonassoc '.'
 
 %%
 
@@ -208,7 +209,7 @@ Expression
   | '-' Expression %prec UNARY { Unary NEG $2 }
   | '+' Expression %prec UNARY { Unary POS $2 }
   | Expression '<' Expression { Rel JLT $1 $3 }
-  | Expression '>' Expression { Rel JGT $3 $1 }
+  | Expression '>' Expression { Rel JGT $1 $3 }
   | Expression '<=' Expression { Rel JLE $1 $3 }
   | Expression '>=' Expression { Rel JGE $1 $3 }
   | Expression '==' Expression { Rel JEQ $1 $3 }
@@ -220,21 +221,20 @@ Expression
 Literal
   : TRUEKW { Boolean True }
   | FALSEKW { Boolean False }
-  | INT { Int (read (getId $1)) }
-  | FLOAT { Float (read (getId $1)) }
-  | DOUBLE { Double (read (getId $1)) }
-  | CHAR { Char $ (getId $1)!!0 }
-  | STRING { String (getId $1) }
-
--- -- IDENTIFIERS
+  | INT { Int (read (getText $1)) }
+  | FLOAT { Float (read (getText $1)) }
+  | DOUBLE { Double (read (getText $1)) }
+  | CHAR { Char $ (read (getText $1)) }
+  | STRING { String (read (getText $1)) }
 
 Id
-  : ID { Id (At $ getPos $1) (getId $1) }
+  : ID { Id (At $ getPos $1) (getText $1) }
 
 {
-getId :: Token -> String
-getId (Token _ (TokenID x)) = x
-getId (Token _ (TokenINT x)) = x
+getText :: Token -> String
+getText (Token _ (TokenID x)) = x
+getText (Token _ (TokenINT x)) = x
+getText (Token _ (TokenSTRING x)) = x
 
 getPos :: Token -> (Int, Int)
 getPos (Token (AlexPn _ line col) _) = (line, col)
