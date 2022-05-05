@@ -13,16 +13,16 @@ used to teach the first undergraduate programming course.
 |    Element | : | Method                                                 |                       |
 |            |   | Stmt                                                   |                       |
 |     Method | : | Type `ID` `(` (Type ID (`,` Type ID)* ) `)` Stmt       |                       |
-| SimpleStmt | : |                                                        | Empty statement       |
-|            |   | Expr `;`                                               | Expression statement  |
-|            |   | Type Init (`,` Init)*                                  | Local variables       |
-|       Stmt | : | SimpleStmt                                             | Simple statement      |
-|            |   | `if` `(` Expr `)` Stmt (`else` Stmt)?                  | Conditional           |
+| SimpleStmt | : |                                                        | empty statement       |
+|            |   | Expr                                                   | expression statement  |
+|            |   | Type Init (`,` Init)*                                  | local variables       |
+|       Stmt | : | SimpleStmt `;`                                         | simple statement      |
+|            |   | `if` `(` Expr `)` Stmt (`else` Stmt)?                  | conditional statement |
 |            |   | `while` `(` Expr `)` Stmt                              | while loop            |
 |            |   | `do` Stmt `while` `(` Expr `)` `;`                     | do-while loop         |
 |            |   | `for` `(` SimpleStmt `;` Expr? `;` SimpleStmt `)` Stmt | for loop              |
-|            |   | `return` Expr? `;`                                     |                       |
-|            |   | `{` Stmt* `}`                                          |                       |
+|            |   | `return` Expr? `;`                                     | return statement      |
+|            |   | `{` Stmt* `}`                                          | block                 |
 |       Init | : | ID (`=` Expr)?                                         |                       |
 |        Ref | : | ID                                                     |                       |
 |            |   | ref `[` Expr `]`                                       |                       |
@@ -60,7 +60,7 @@ used to teach the first undergraduate programming course.
 |     STEPOP | : | `++` \| `--`                                           |                       |
 |    BOOLEAN | : | `true` \| `false`                                      |                       |
 |      DIGIT | : | [`0`-`9`]                                              |                       |
-|      ALPHA | : | [`a`-`z``A`-`Z`]                                       |                       |
+|      ALPHA | : | [`a`-`z` `A`-`Z`]                                      |                       |
 |       NEXT | : | ALPHA \| DIGIT \| `_`                                  |                       |
 |         ID | : | ALPHA NEXT+                                            |                       |
 |        NAT | : | DIGIT+                                                 |                       |
