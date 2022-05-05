@@ -54,41 +54,17 @@ main = do
   case parseProgram file source of
     Left msg -> printWarning msg
     Right (methods, stmts) -> do
+      let no_opt = NoOpt `elem` args
       let stmt = foldr Seq Skip stmts
       let main = Method VoidType (Id Somewhere "main") [(Id Somewhere "_args", ArrayType StringType)] stmt
       methods <- Checker.checkClass cls (main : methods)
-      methods' <- Optimizer.optimizeMethods <$> Compiler.compileClass methods
+      methods' <- (if no_opt then id else Optimizer.optimizeMethods) <$> Compiler.compileClass methods
       Jasmin.outputClass cls methods'
-
-  -- where
-  --   check :: FilePath -> [Flag] -> [ProcessDef] -> IO ()
-  --   check file args pdefs = do
-  --     let verbose  = Verbose `elem` args
-  --     let logging  = Logging `elem` args
-  --     let no_action = NoAction `elem` args
-  --     let no_bounds = NoBounds `elem` args
-  --     let no_checks = NoChecks `elem` args
-  --     let unfair = Unfair `elem` args
-  --     let weak = Weak `elem` args
-  --     let run = Run `elem` args
-  --     when logging
-  --       (do putStr $ takeFileName file ++ " ... "
-  --           hFlush stdout)
-  --     start <- getCurrentTime
-  --     let subt = (if unfair then Relation.unfairSubtype else Relation.fairSubtype) weak
-  --     unless no_action $ Checker.checkActionBoundedness pdefs
-  --     unless no_bounds $ Checker.checkRanks pdefs
-  --     unless no_checks $ Checker.checkTypes subt pdefs
-  --     stop <- getCurrentTime
-  --     printOK (if logging then Just (show (diffUTCTime stop start)) else Nothing)
-  --     when verbose $ forM_ pdefs (printRank pdefs)
-
---     handler :: [Flag] -> MyException -> IO ()
---     handler _ e = printNO (show e)
 
 -- |Representation of supported flags.
 data Flag = Verbose  -- -v --verbose
           | Version  -- -V --version
+          | NoOpt    -- -o
           | Logging  --    --log
           | Help     --    --help
             deriving (Eq, Ord)
@@ -99,6 +75,7 @@ flags =
    [ Option []  ["log"]      (NoArg Logging)     "Log type checking time"
    , Option "v" ["verbose"]  (NoArg Verbose)     "Print type checking and running activities"
    , Option "V" ["version"]  (NoArg Version)     "Print version information"
+   , Option "o" []           (NoArg NoOpt)       "Disable code optimization"
    , Option "h" ["help"]     (NoArg Help)        "Print this help message" ]
 
 -- |The information displayed when the verbose option is specified.
