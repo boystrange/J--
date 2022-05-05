@@ -27,9 +27,6 @@ emit instr = do
     state <- State.get
     State.put (state { code = instr : code state })
 
-emitLabel :: Label -> Compiler ()
-emitLabel = emit . Jasmin.LABEL
-
 getCode :: Compiler [Jasmin.Code]
 getCode = do
     state <- State.get
@@ -43,11 +40,14 @@ compileRef (ArrayRef t r expr) = do
     compileExpr expr
     emit $ Jasmin.ALOAD t
 
-jumpIf :: Type -> RelOp -> Label -> Compiler ()
-jumpIf t op tt | isFloating t = do
+jumpIf :: Type -> RelOp -> Label -> Label -> Compiler ()
+jumpIf t op tt ff | isFloating t = do
     emit $ Jasmin.CMP t
     emit $ Jasmin.IF op tt
-jumpIf t op tt = emit $ Jasmin.IFCMP t op tt
+    emit $ Jasmin.GOTO ff
+jumpIf t op tt ff = do
+    emit $ Jasmin.IFCMP t op tt
+    emit $ Jasmin.GOTO ff
 
 compileProp :: Label -> Label -> Proposition -> Compiler ()
 compileProp tt ff TrueProp = emit $ Jasmin.GOTO tt
@@ -55,17 +55,16 @@ compileProp tt ff FalseProp = emit $ Jasmin.GOTO ff
 compileProp tt ff (Rel t op expr1 expr2) = do
     compileExpr expr1
     compileExpr expr2
-    jumpIf t op tt
-    emit $ Jasmin.GOTO ff
+    jumpIf t op tt ff
 compileProp tt ff (And prop1 prop2) = do
-    true <- newLabel
-    compileProp true ff prop1
-    emitLabel true
+    cont <- newLabel
+    compileProp cont ff prop1
+    emit $ Jasmin.LABEL cont
     compileProp tt ff prop2
 compileProp tt ff (Or prop1 prop2) = do
-    false <- newLabel
-    compileProp tt false prop1
-    emitLabel false
+    cont <- newLabel
+    compileProp tt cont prop1
+    emit $ Jasmin.LABEL cont
     compileProp tt ff prop2
 compileProp tt ff (Not prop) = compileProp ff tt prop
 compileProp tt ff (FromExpression expr) = do
@@ -104,16 +103,16 @@ compileExpr (Convert t expr) = do
     compileExpr expr
     emit $ Jasmin.CONVERT (typeof expr) t
 compileExpr (FromProposition prop) = do
-    true <- newLabel
-    false <- newLabel
+    tt <- newLabel
+    ff <- newLabel
     next <- newLabel
-    compileProp true false prop
-    emitLabel true
+    compileProp tt ff prop
+    emit $ Jasmin.LABEL tt
     emit $ Jasmin.LDC (Boolean True)
     emit $ Jasmin.GOTO next
-    emitLabel false
+    emit $ Jasmin.LABEL ff
     emit $ Jasmin.LDC (Boolean False)
-    emitLabel next
+    emit $ Jasmin.LABEL next
 
 compileStep :: Type -> StepOp -> SignOp -> Reference -> Compiler ()
 compileStep _ POST sign (ArrayRef t ref expr) = undefined
@@ -133,27 +132,27 @@ compileStep _ PRE sign (IdRef t i _) = do
 compileStmt :: Label -> Statement -> Compiler ()
 compileStmt next Skip = emit $ Jasmin.GOTO next
 compileStmt next (If prop stmt1 stmt2) = do
-    true <- newLabel
-    false <- newLabel
-    compileProp true false prop
-    emitLabel true
+    tt <- newLabel
+    ff <- newLabel
+    compileProp tt ff prop
+    emit $ Jasmin.LABEL tt
     compileStmt next stmt1
-    emitLabel false
+    emit $ Jasmin.LABEL ff
     compileStmt next stmt2
 compileStmt next (While prop stmt) = do
     cont <- newLabel
-    true <- newLabel
-    emitLabel cont
-    compileProp true next prop
-    emitLabel true
+    tt <- newLabel
+    emit $ Jasmin.LABEL cont
+    compileProp tt next prop
+    emit $ Jasmin.LABEL tt
     compileStmt cont stmt
 compileStmt next (Do stmt prop) = do
     cont <- newLabel
-    true <- newLabel
-    emitLabel true
+    tt <- newLabel
+    emit $ Jasmin.LABEL tt
     compileStmt cont stmt
-    emitLabel cont
-    compileProp true next prop
+    emit $ Jasmin.LABEL cont
+    compileProp tt next prop
 compileStmt next (Return t Nothing) = emit $ Jasmin.RETURN t
 compileStmt next (Return t (Just expr)) = do
     compileExpr expr
@@ -161,7 +160,7 @@ compileStmt next (Return t (Just expr)) = do
 compileStmt next (Seq stmt1 stmt2) = do
     cont <- newLabel
     compileStmt cont stmt1
-    emitLabel cont
+    emit $ Jasmin.LABEL cont
     compileStmt next stmt2
 compileStmt next (Ignore expr) = do
     compileExpr expr
