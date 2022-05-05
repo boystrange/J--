@@ -7,61 +7,66 @@ used to teach the first undergraduate programming course.
 
 ## Syntax
 
-|---------|---|--------------------------------------------|-----------------|
-| Prog    | : | Elem*                                      |                 |
-| Elem    | : | Method                                     |                 |
-|         |   | Stmt                                       |                 |
-| Method  | : | Type `ID` `(` Args `)` `{` Slist `}`       |                 |
-| Args    | : | ( Type ID (`,` Type ID)* )?                |                 |
-| Stmt    | : | `;`                                        | Empty statement |
-|         |   | `if` `(` Expr `)` Stmt (`else` Stmt)?      | Conditional     |
-|         |   | `while` `(` Expr `)` Stmt                  | while loop      |
-|         |   | `do` Stmt `while` `(` Expr `)` `;`         | do-while loop   |
-|         |   | `for` `(` Stmt `;` Expr `;` Stmt `)` Stmt  | for loop        |
-|         |   | `return` Expr? `;`                         |                 |
-|         |   | Expr `;`                                   |                 |
-|         |   | `{` Slist `}`                              |                 |
-| Slist   | : | (Stmt \| Decl)*                            |                 |
-| Decl    | : | Type ( Init (`,` Init)* ) `;`              |                 |
-| Init    | : | ID (`=` Expr)?                             |                 |
-| Ref     | : | ID                                         |                 |
-|         |   | ref `[` Expr `]`                           |                 |
-| Expr    | : | Lit                                        |                 |
-|         |   | ID `(` (Expr (`,` Expr)*)? `)`             |                 |
-|         |   | `new` Type `[` Expr `]`                    |                 |
-|         |   | Ref `=` Expr                               |                 |
-|         |   | Ref POSTOP                                 |                 |
-|         |   | PREOP Ref                                  |                 |
-|         |   | Ref                                        |                 |
-|         |   | `(` Expr `)`                               |                 |
-|         |   | Expr BINOP Expr                            |                 |
-| Lit     | : | INT                                        |                 |
-|         |   | FLOAT                                      |                 |
-|         |   | DOUBLE                                     |                 |
-|         |   | BOOLEAN                                    |                 |
-|         |   | CHAR                                       |                 |
-|         |   | STRING                                     |                 |
-| Type    | : | AType                                      |                 |
-|         |   | Type `[` `]`                               |                 |
-| AType   | : | `int`                                      |                 |
-|         |   | `float`                                    |                 |
-|         |   | `double`                                   |                 |
-|         |   | `boolean`                                  |                 |
-|         |   | `char`                                     |                 |
-|         |   | `String`                                   |                 |
-|         |   | `void`                                     |                 |
-| BINOP   | : | `+` \| `-` \| `*` \| `/` \| `%`            |                 |
-|         |   | `==` \| `!=` \| `<` \| `>` \| `<=` \| `>=` |                 |
-|         |   | `&&` \| `\|\|`                             |                 |
-| PREOP   | : | `+` \| `-`                                 |                 |
-|         |   | `!`                                        |                 |
-|         |   | `++` \| `--`                               |                 |
-| POSTOP  | : | `++` \| `--`                               |                 |
-| BOOLEAN | : | `true` \| `false`                          |                 |
-| ID      | : | [`a`-`z``A`-`Z`]+                          |                 |
-| NAT     | : | [`0`-`9`]+                                 |                 |
-| INT     | : | SIGN? NAT                                  |                 |
-| FLOAT   | : | SIGN? (NAT `.` NAT? \| NAT? `.` NAT) EXP?  |                 |
-| DOUBLE  | : | FLOAT `d`                                  |                 |
-| EXP     | : | (`e` \| `E`) INT                           |                 |
-| SIGN    | : | `+` \| `-`                                 |                 |
+|     Entity |   | Productions                                            | Description           |
+|-----------:|---|--------------------------------------------------------|-----------------------|
+|    Program | : | Element*                                               |                       |
+|    Element | : | Method                                                 |                       |
+|            |   | Stmt                                                   |                       |
+|     Method | : | Type `ID` `(` (Type ID (`,` Type ID)* ) `)` Stmt       |                       |
+| SimpleStmt | : |                                                        | Empty statement       |
+|            |   | Expr `;`                                               | Expression statement  |
+|            |   | Type Init (`,` Init)*                                  | Local variables       |
+|       Stmt | : | SimpleStmt                                             | Simple statement      |
+|            |   | `if` `(` Expr `)` Stmt (`else` Stmt)?                  | Conditional           |
+|            |   | `while` `(` Expr `)` Stmt                              | while loop            |
+|            |   | `do` Stmt `while` `(` Expr `)` `;`                     | do-while loop         |
+|            |   | `for` `(` SimpleStmt `;` Expr? `;` SimpleStmt `)` Stmt | for loop              |
+|            |   | `return` Expr? `;`                                     |                       |
+|            |   | `{` Stmt* `}`                                          |                       |
+|       Init | : | ID (`=` Expr)?                                         |                       |
+|        Ref | : | ID                                                     |                       |
+|            |   | ref `[` Expr `]`                                       |                       |
+|       Expr | : | Literal                                                | literal constant      |
+|            |   | ID `(` (Expr (`,` Expr)*)? `)`                         | method invocation     |
+|            |   | `new` Type (`[` Expr `]`)+                             | array creation        |
+|            |   | Ref                                                    | reference             |
+|            |   | `(` Expr `)`                                           | parentheses           |
+|            |   | Ref `=` Expr                                           | assignment            |
+|            |   | `(` Type `)` Expr                                      | type cast             |
+|            |   | Ref STEPOP                                             | postfix step operator |
+|            |   | STEPOP Ref                                             | prefix step operator  |
+|            |   | PREOP Expr                                             | prefix unary operator |
+|            |   | Expr BINOP Expr                                        | infix binary operator |
+|    Literal | : | `null`                                                 | null reference        |
+|            |   | INT                                                    |                       |
+|            |   | FLOAT                                                  |                       |
+|            |   | DOUBLE                                                 |                       |
+|            |   | BOOLEAN                                                |                       |
+|            |   | CHAR                                                   |                       |
+|            |   | STRING                                                 |                       |
+|       Type | : | `void`                                                 |                       |
+|            |   | `boolean`                                              |                       |
+|            |   | `int`                                                  |                       |
+|            |   | `float`                                                |                       |
+|            |   | `double`                                               |                       |
+|            |   | `char`                                                 |                       |
+|            |   | `String`                                               |                       |
+|            |   | Type `[` `]`                                           |                       |
+|      BINOP | : | `+` \| `-` \| `*` \| `/` \| `%`                        |                       |
+|            |   | `==` \| `!=` \| `<` \| `>` \| `<=` \| `>=`             |                       |
+|            |   | `&&` \| `\|\|`                                         |                       |
+|      PREOP | : | `+` \| `-`                                             |                       |
+|            |   | `!`                                                    |                       |
+|     STEPOP | : | `++` \| `--`                                           |                       |
+|    BOOLEAN | : | `true` \| `false`                                      |                       |
+|      DIGIT | : | [`0`-`9`]                                              |                       |
+|      ALPHA | : | [`a`-`z``A`-`Z`]                                       |                       |
+|       NEXT | : | ALPHA \| DIGIT \| `_`                                  |                       |
+|         ID | : | ALPHA NEXT+                                            |                       |
+|        NAT | : | DIGIT+                                                 |                       |
+|        INT | : | MINUS? NAT                                             |                       |
+|      FLOAT | : | MINUS? (NAT `.` NAT? \| NAT? `.` NAT) EXP?             |                       |
+|     DOUBLE | : | FLOAT (`d` \| `D`)                                     |                       |
+|        EXP | : | (`e` \| `E`) SIGN? NAT                                 |                       |
+|      MINUS | : | `-`                                                    |                       |
+|       SIGN | : | `+` \| `-`                                             |                       |

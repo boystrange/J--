@@ -155,7 +155,7 @@ Statement
   : SimpleStatement ';' { $1 }
   | IFKW '(' Expression ')' Statement ElseOpt { If $3 $5 $6 }
   | WHILEKW '(' Expression ')' Statement { While $3 $5 }
-  | DOKW Statement WHILEKW '(' Expression ')' { Do $2 $5 }
+  | DOKW Statement WHILEKW '(' Expression ')' ';' { Do $2 $5 }
   | FORKW '(' SimpleStatement ';' ExpressionOpt ';' SimpleStatement ')' Statement { expandFor $3 $5 $7 $9 }
   | RETURNKW ExpressionOpt ';' { Return $2 }
   | '{' StatementList '}' { Block $2 }
