@@ -9,12 +9,6 @@ import Jasmin
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-usedLabels :: Code -> Set Label
-usedLabels (GOTO l) = Set.singleton l
-usedLabels (IF _ l) = Set.singleton l
-usedLabels (IFCMP _ _ l) = Set.singleton l
-usedLabels _ = Set.empty
-
 peephole :: [Code] -> [Code]
 peephole = aux
     where
@@ -28,7 +22,7 @@ peephole = aux
 removeUselessLabels :: [Code] -> [Code]
 removeUselessLabels is = filter useful is
     where
-        lset = Set.unions (map usedLabels is)
+        lset = Set.fromList (concat $ map labels is)
 
         useful :: Code -> Bool
         useful (LABEL l) = Set.member l lset

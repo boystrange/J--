@@ -5,7 +5,28 @@ import Type
 import Language
 import Render ()
 import Data.Char (ord)
-import Control.Monad (forM_)
+import Control.Monad (forM_, unless)
+import Data.Set (Set)
+import qualified Data.Set as Set
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Control.Monad.State.Lazy (StateT)
+import qualified Control.Monad.State.Lazy as State
+
+data JasminCheckerState = JasminCheckerState { frame :: Int
+                                             , stack :: Int
+                                             , maxStack :: Int
+                                             , lmap :: Map Label Int }
+
+initialJasminCheckerState :: Type -> JasminCheckerState
+initialJasminCheckerState (MethodType _ ts) = JasminCheckerState {
+    frame = sum (map sizeOf ts),
+    stack = 0,
+    maxStack = 0,
+    lmap = Map.empty
+}
+
+type JasminChecker = StateT JasminCheckerState IO
 
 class Jasmin a where
     jasmin :: a -> String
@@ -60,7 +81,6 @@ data Code
     | POP Type
     | DUP Type
     | DUP_X2 Type
-    | NEG Type
     | RETURN Type
     | CMP Type
     | IF RelOp Label
@@ -71,11 +91,71 @@ data Code
     | CONVERT Type Type
     deriving Eq
 
+locals :: Code -> Int
+locals (LOAD t i) = i + sizeOf t
+locals (STORE t i) = i + sizeOf t
+locals _ = 0
+
+labels :: Code -> [Label]
+labels (GOTO l) = [l]
+labels (IF _ l) = [l]
+labels (IFCMP _ _ l) = [l]
+labels _ = []
+
+delta :: Code -> Int
+delta (LABEL _) = 0
+delta (GOTO _) = 0
+delta (LDC lit) = sizeOf (typeof lit)
+delta (LOAD t _) = sizeOf t
+delta (STORE t _) = negate (sizeOf t)
+delta (ALOAD t) = sizeOf t - 2
+delta (ASTORE t) = 2 + sizeOf t
+delta NOP = 0
+delta (POP t) = negate (sizeOf t)
+delta (DUP t) = sizeOf t
+delta (DUP_X2 t) = sizeOf t
+delta (RETURN t) = negate (sizeOf t)
+delta (CMP t) = 1 - 2 * sizeOf t
+delta (IF _ _) = -1
+delta (IFCMP t _ _) = negate (2 * sizeOf t)
+delta (UNARY _ _) = 0
+delta (BINARY t _) = negate (sizeOf t)
+delta (INVOKE _ (MethodType t ts)) = sizeOf t - sum (map sizeOf ts)
+delta (CONVERT t s) = sizeOf s - sizeOf t
+
+checkLabel :: Label -> JasminChecker ()
+checkLabel l = do
+    state <- State.get
+    let m = stack state
+    case Map.lookup l (lmap state) of
+        Just n -> do
+            unless (m == n) $ error $ "label " ++ show l ++ " was defined at " ++ show n ++ " but now the stack is " ++ show m
+        Nothing -> do
+            let lmap' = Map.insert l m (lmap state)
+            State.put (state { lmap = lmap' })
+
+checkCode :: Code -> JasminChecker ()
+checkCode (LABEL l) = checkLabel l
+checkCode i = do
+    state <- State.get
+    let frame' = max (frame state) (locals i)
+    let stack' = stack state + delta i
+    let maxStack' = max (maxStack state) stack'
+    unless (stack' >= 0) $ error "negative stack!"
+    State.put (state { frame = frame', stack = stack', maxStack = maxStack' })
+    forM_ (labels i) checkLabel
+
+checkMethod :: [Code] -> JasminChecker ()
+checkMethod is = forM_ is checkCode
+
 data Method = Method Id Type [Code]
 
 printMethod :: Method -> IO ()
 printMethod (Method m t is) = do
+    state <- State.execStateT (checkMethod is) (initialJasminCheckerState t)
     putStrLn $ ".method public " ++ show m ++ jasmin t
+    putStrLn $ "    .locals " ++ show (frame state)
+    putStrLn $ "    .stack " ++ show (maxStack state)
     forM_ is (putStrLn . show)
     putStrLn $ ".end method"
 
