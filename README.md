@@ -12,7 +12,7 @@ used to teach the first undergraduate programming course.
 |    Program | : | Element*                                               |                       |
 |    Element | : | Method                                                 |                       |
 |            |   | Stmt                                                   |                       |
-|     Method | : | Type `ID` `(` (Type ID (`,` Type ID)* ) `)` Stmt       |                       |
+|     Method | : | Type `ID` `(` (Type ID (`,` Type ID)*)? `)` Stmt       |                       |
 | SimpleStmt | : |                                                        | empty statement       |
 |            |   | Expr                                                   | expression statement  |
 |            |   | Type Init (`,` Init)*                                  | local variables       |

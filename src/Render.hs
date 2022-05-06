@@ -15,13 +15,7 @@
 -- Copyright 2022 Luca Padovani
 
 -- |Pretty printer for session types and error messages.
-module Render
-  ( printTitle
-  , printWarning
-  , printOK
-  , printNO
-  , printType )
-where
+module Render (printWarning, printError) where
 
 import Atoms
 import Type
@@ -139,15 +133,7 @@ printWarning :: String -> IO ()
 printWarning msg = printAnnotatedString [PT.color PT.Red] msg >> printNewLine
 
 -- |Print an error message.
-printNO :: String -> IO ()
-printNO msg = do
+printError :: String -> IO ()
+printError msg = do
   printAnnotatedString [PT.color PT.Red] "NO:"
   putStrLn $ " " ++ msg
-
--- |Print a success message.
-printOK :: Maybe String -> IO ()
-printOK msg = do
-  printAnnotatedString [PT.bold, PT.color PT.Green] "OK"
-  case msg of
-    Nothing -> printNewLine
-    Just m -> putStrLn $ " (" ++ m ++ ")"

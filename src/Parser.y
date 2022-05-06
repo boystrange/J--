@@ -100,7 +100,7 @@ import Control.Exception
 -- PROGRAMS
 
 Program
-  : ElementList { partitionEithers $1 }
+  : ElementList { expandProgram $1 }
 
 -- ELEMENTS
 
@@ -259,9 +259,16 @@ expandFor init mexpr incr body = Block $ Seq init $ While test $ Seq body incr
   where
     test = fromMaybe (Literal (Boolean True)) mexpr
 
+expandProgram :: [Either Method Statement] -> [Method]
+expandProgram elems = main : methods
+  where
+    (methods, slist) = partitionEithers elems
+    stmt = foldr Seq Skip slist
+    main = Method VoidType (Id Somewhere "main") [(Id Somewhere "_args", ArrayType StringType)] stmt
+
 happyError :: Token -> Alex a
 happyError (Token p t) = alexError' p ("parse error at token '" ++ show t ++ "'")
 
-parseProgram :: FilePath -> String -> Either String ([Method], [Statement])
+parseProgram :: FilePath -> String -> Either String [Method]
 parseProgram = runAlex' parse
 }

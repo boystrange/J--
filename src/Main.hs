@@ -22,7 +22,7 @@ import Type
 import Language
 import SourceLanguage
 import Render
-import Exceptions (MyException)
+import Exceptions
 import Parser
 import qualified Checker
 import qualified Compiler
@@ -34,7 +34,7 @@ import System.IO (stdout, stderr, hFlush, hPutStrLn, openFile, IOMode(..))
 import System.Exit (exitWith, ExitCode(ExitSuccess, ExitFailure))
 import System.Environment (getProgName, getArgs)
 import Control.Monad (forM_, unless, when)
-import Control.Exception (catch)
+import Control.Exception (catch, throw)
 import qualified Data.Version
 import Data.Time (getCurrentTime, diffUTCTime)
 import System.FilePath.Posix (takeFileName, takeBaseName)
@@ -48,17 +48,22 @@ main :: IO ()
 main = do
   progName <- getProgName
   (args, file) <- getArgs >>= parse progName
-  source <- if file == "-" then getContents else readFile file
-  let cls = if file == "-" then "default" else takeBaseName file
-  case parseProgram file source of
-    Left msg -> printWarning msg
-    Right (methods, stmts) -> do
-      let no_opt = NoOpt `elem` args
-      let stmt = foldr Seq Skip stmts
-      let main = Method VoidType (Id Somewhere "main") [(Id Somewhere "_args", ArrayType StringType)] stmt
-      methods <- Checker.checkClass cls (main : methods)
-      methods' <- (if no_opt then id else Optimizer.optimizeMethods) <$> Compiler.compileClass methods
-      Jasmin.outputClass cls methods'
+  catch (compile args file) handler
+  where
+    compile :: [Flag] -> String -> IO ()
+    compile args file = do
+      source <- if file == "-" then getContents else readFile file
+      let cls = if file == "-" then "default" else takeBaseName file
+      case parseProgram file source of
+        Left msg -> throw $ ErrorSyntax msg
+        Right methods -> do
+          let no_opt = NoOpt `elem` args
+          methods <- Checker.checkClass cls methods
+          methods' <- (if no_opt then id else Optimizer.optimizeMethods) <$> Compiler.compileClass methods
+          Jasmin.outputClass cls methods'
+
+    handler :: MyException -> IO ()
+    handler = printError . show
 
 -- |Representation of supported flags.
 data Flag = Verbose  -- -v --verbose
