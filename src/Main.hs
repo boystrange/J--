@@ -14,30 +14,25 @@
 
 -- Copyright 2022 Luca Padovani
 
--- |This module parses the command-line arguments and invokes the type checker.
+-- |This module parses the command-line arguments and invokes the compiler.
 module Main (main) where
 
-import Atoms
-import Type
-import Language
-import SourceLanguage
 import Render
 import Exceptions
-import Parser
+import qualified Parser
 import qualified Checker
 import qualified Compiler
 import qualified Jasmin
 import qualified Optimizer
 
 import System.Console.GetOpt
-import System.IO (stdout, stderr, hFlush, hPutStrLn, openFile, IOMode(..))
+import System.IO (stderr, hPutStrLn, openFile)
 import System.Exit (exitWith, ExitCode(ExitSuccess, ExitFailure))
 import System.Environment (getProgName, getArgs)
-import Control.Monad (forM_, unless, when)
+import Control.Monad (when)
 import Control.Exception (catch, throw)
 import qualified Data.Version
-import Data.Time (getCurrentTime, diffUTCTime)
-import System.FilePath.Posix (takeFileName, takeBaseName)
+import System.FilePath.Posix (takeBaseName)
 
 -- |Version of the program.
 version :: Data.Version.Version
@@ -54,7 +49,7 @@ main = do
     compile args file = do
       source <- if file == "-" then getContents else readFile file
       let cls = if file == "-" then "default" else takeBaseName file
-      case parseProgram file source of
+      case Parser.parseProgram file source of
         Left msg -> throw $ ErrorSyntax msg
         Right methods -> do
           let no_opt = NoOpt `elem` args
