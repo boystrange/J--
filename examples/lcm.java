@@ -16,7 +16,7 @@
 
 // Compute least common multiple
 
-int mcm(int a, int b) {
+int lcm(int a, int b) {
     int m = a, n = b;
     while (m != n) {
         if (m < n) m = m + a;
@@ -27,5 +27,5 @@ int mcm(int a, int b) {
 
 for (int i = 1; i < 10; i++)
   for (int j = i; j < 10; j++)
-    println("mcm(" + i + "," + j + ") = " + mcm(i,j));
+    println("lcm(" + i + "," + j + ") = " + lcm(i,j));
   
