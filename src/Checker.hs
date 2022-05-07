@@ -145,9 +145,9 @@ checkExpr (Step pos step sign ref) = do
   let t = typeof ref'
   unless (isNumeric t) $ throw $ ErrorStepOperator pos step t
   return $ Typed.Step t step sign ref'
-checkExpr (Cast t expr) = do
+checkExpr (Cast pos t expr) = do
   expr' <- checkExpr expr
-  return $ cast t expr'
+  return $ cast pos t expr'
 checkExpr expr = Typed.FromProposition <$> checkProp expr
 
 stringable :: BinOp -> Type -> Type -> Bool
@@ -165,8 +165,10 @@ widen pos t expr | widening s t = if t == s then expr else Typed.Convert t expr
   where
     s = typeof expr
 
-cast :: Type -> Typed.Expression -> Typed.Expression
-cast t expr = if t == s then expr else Typed.Convert t expr
+cast :: Pos -> Type -> Typed.Expression -> Typed.Expression
+cast pos t expr | t == s = expr
+                | widening s t || widening t s = Typed.Convert t expr
+                | otherwise = throw $ ErrorTypeMismatch pos t s
   where
     s = typeof expr
 

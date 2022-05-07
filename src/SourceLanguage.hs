@@ -33,7 +33,7 @@ data Expression
   | Unary Pos SignOp Expression
   | Binary Pos BinOp Expression Expression
   | Step Pos StepOp SignOp Reference
-  | Cast Type Expression
+  | Cast Pos Type Expression
   | Rel Pos RelOp Expression Expression
   | And Expression Expression
   | Or Expression Expression

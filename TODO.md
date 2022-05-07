@@ -15,3 +15,4 @@
 * Method overloading
 * Invoke `jasmin` from `j--`?
 * Optimize increment and decrement operations
+* ternary expressions

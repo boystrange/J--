@@ -205,7 +205,7 @@ Expression
   | Expression '*' Expression { Binary (getPos $2) MUL $1 $3 }
   | Expression '/' Expression { Binary (getPos $2) DIV $1 $3 }
   | Expression '%' Expression { Binary (getPos $2) MOD $1 $3 }
-  | '(' Type ')' Expression %prec UNARY { Cast $2 $4 }
+  | '(' Type ')' Expression %prec UNARY { Cast (getPos $1) $2 $4 }
   | Ref '++' { Step (getPos $2) POST POS $1 }
   | Ref '--' { Step (getPos $2) POST NEG $1 }
   | '++' Ref { Step (getPos $1) PRE POS $2 }
