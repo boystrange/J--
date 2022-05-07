@@ -246,9 +246,6 @@ getText (Token _ (TokenDOUBLE x)) = x
 getText (Token _ (TokenCHAR x)) = x
 getText (Token _ (TokenSTRING x)) = x
 
-located :: Token -> a -> Located a
-located token = Located (getPos token)
-
 getPos :: Token -> Pos
 getPos (Token (AlexPn _ line col) _) = At line col
 

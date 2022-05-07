@@ -26,17 +26,6 @@ instance Show Pos where
   show Somewhere = ""
   show (At l c) = show l ++ "," ++ show c
 
-data Located a = Located { location :: Pos, delocated :: a }
-
-instance Show a => Show (Located a) where
-  show = show . delocated
-
-instance Eq a => Eq (Located a) where
-  (==) u v = (==) (delocated u) (delocated v)
-
-instance Ord a => Ord (Located a) where
-  compare u v = compare (delocated u) (delocated v)
-
 data Id = Id { identifierPos :: Pos
              , identifierName :: String }
 instance Show Id where
