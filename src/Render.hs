@@ -28,6 +28,7 @@ import qualified Prettyprinter.Render.Terminal as PT
 import qualified Data.Map as Map
 import qualified Data.Set as S
 import qualified Data.List as List
+import Data.Maybe (fromMaybe)
 
 -- PRETTY PRINTER COMPATIBILITY
 
@@ -88,6 +89,10 @@ instance Show Reference where
   show (IdRef x) = showWithPos x
   show (ArrayRef ref _) = show ref ++ "[...]"
 
+instance Show StepOp where
+  show PRE = "prefix"
+  show POST = "postfix"
+
 instance Show SignOp where
   show NEG = "-"
   show POS = "+"
@@ -133,7 +138,7 @@ printWarning :: String -> IO ()
 printWarning msg = printAnnotatedString [PT.color PT.Red] msg >> printNewLine
 
 -- |Print an error message.
-printError :: String -> IO ()
-printError msg = do
-  printAnnotatedString [PT.color PT.Red] "NO:"
+printError :: FilePath -> Pos -> String -> IO ()
+printError file pos msg = do
+  printAnnotatedString [PT.color PT.Red] (file ++ ":" ++ show pos ++ ":")
   putStrLn $ " " ++ msg

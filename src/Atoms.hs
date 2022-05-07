@@ -20,11 +20,22 @@ module Atoms where
 -- |A position refers to line and column within a script. The constructor
 -- 'Somewhere' builds an unknown position.
 data Pos = Somewhere
-         | At (Int, Int)
+         | At Int Int
 
 instance Show Pos where
   show Somewhere = ""
-  show (At (l, c)) = " [line " ++ show l ++ "]"
+  show (At l c) = show l ++ "," ++ show c
+
+data Located a = Located { location :: Pos, delocated :: a }
+
+instance Show a => Show (Located a) where
+  show = show . delocated
+
+instance Eq a => Eq (Located a) where
+  (==) u v = (==) (delocated u) (delocated v)
+
+instance Ord a => Ord (Located a) where
+  compare u v = compare (delocated u) (delocated v)
 
 data Id = Id { identifierPos :: Pos
              , identifierName :: String }

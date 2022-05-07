@@ -27,33 +27,48 @@ import Control.Exception (Exception)
 
 -- |The type of FairCheck exceptions.
 data MyException
-  = ErrorSyntax String
+  = ErrorSyntax Pos String
+  | ErrorVoidReturn Pos Type
+  | ErrorWrongNumberOfArguments Id Int Int
+  | ErrorTypeMismatch Pos Type Type
+  | ErrorStepOperator Pos StepOp Type
+  | ErrorUnaryOperator Pos SignOp Type
+  | ErrorBinaryOperator Pos BinOp Type Type
+  | ErrorBinaryRelation Pos RelOp Type Type
+  | ErrorMethodExpected Id Type
+  | ErrorArrayExpected Type
+  | ErrorMissingReturn Id
   | ErrorUnknownIdentifier Id
   | ErrorMultipleDeclarations Id
-  | ErrorWrongNumberOfArguments Id Int Int
-  | ErrorMissingReturn Id
-  | ErrorTypeMismatch Type Type
-  | ErrorMethodExpected Id Type
-  | ErrorNumberExpected Type
-  | ErrorArrayExpected Type
-  | ErrorUnaryOperator SignOp Type
-  | ErrorBinaryOperator BinOp Type Type
-  | ErrorBinaryRelation RelOp Type Type
-  | ErrorInvalidWidening Type Type
 
 instance Exception MyException
 
+posof :: MyException -> Pos
+posof (ErrorSyntax pos _) = pos
+posof (ErrorVoidReturn pos _) = pos
+posof (ErrorWrongNumberOfArguments x _ _) = identifierPos x
+posof (ErrorStepOperator pos _ _) = pos
+posof (ErrorUnaryOperator pos _ _) = pos
+posof (ErrorBinaryOperator pos _ _ _) = pos
+posof (ErrorTypeMismatch pos _ _) = pos
+posof (ErrorBinaryRelation pos _ _ _) = pos
+posof (ErrorMethodExpected x _) = identifierPos x
+posof (ErrorArrayExpected _) = Somewhere
+posof (ErrorMissingReturn x) = identifierPos x
+posof (ErrorUnknownIdentifier x) = identifierPos x
+posof (ErrorMultipleDeclarations x) = identifierPos x
+
 instance Show MyException where
-  show (ErrorSyntax msg) = msg
-  show (ErrorUnknownIdentifier x) = "unknown reference to " ++ showWithPos x
-  show (ErrorMultipleDeclarations x) = "multiple declarations of " ++ showWithPos x
-  show (ErrorWrongNumberOfArguments x en an) = "wrong number of arguments when calling " ++ showWithPos x ++", expected " ++ show en ++ ", actual " ++ show an
-  show (ErrorMissingReturn x) = "missing return statement for method " ++ showWithPos x
-  show (ErrorTypeMismatch et at) = "expected type " ++ show et ++ ", actual type " ++ show at
+  show (ErrorSyntax _ tok) = "syntax error at token '" ++ tok ++ "'"
+  show (ErrorUnknownIdentifier x) = "unknown reference to " ++ show x
+  show (ErrorMultipleDeclarations x) = "multiple declarations of " ++ show x
+  show (ErrorWrongNumberOfArguments x en an) = "wrong number of arguments when calling " ++ show x ++", expected " ++ show en ++ ", actual " ++ show an
+  show (ErrorMissingReturn x) = "missing return statement for method " ++ show x
+  show (ErrorVoidReturn _ t) = "method should return value of type " ++ show t
   show (ErrorArrayExpected t) = "array expected, actual type " ++ show t
-  show (ErrorNumberExpected t) = "number expected, actual type " ++ show t
-  show (ErrorMethodExpected x t) = showWithPos x ++ "is not a method, its type is " ++ show t
-  show (ErrorUnaryOperator op t) = "unary operator " ++ show op ++ " cannot be applied to operand of type " ++ show t
-  show (ErrorBinaryOperator op t s) = "binary operator " ++ show op ++ " cannot be applied to operands of type " ++ show t ++ " and " ++ show s
-  show (ErrorBinaryRelation op t s) = "relation operator " ++ show op ++ " cannot compare operands of type " ++ show t ++ " and " ++ show s
-  
+  show (ErrorMethodExpected x t) = show x ++ " is not a method, its type is " ++ show t
+  show (ErrorStepOperator _ op t) = show op ++ " operator cannot be applied to operand of type " ++ show t
+  show (ErrorUnaryOperator _ op t) = "unary operator " ++ show op ++ " cannot be applied to operand of type " ++ show t
+  show (ErrorBinaryOperator _ op t s) = "binary operator " ++ show op ++ " cannot be applied to operands of type " ++ show t ++ " and " ++ show s
+  show (ErrorBinaryRelation _ op t s) = "relation operator " ++ show op ++ " cannot compare operands of type " ++ show t ++ " and " ++ show s
+  show (ErrorTypeMismatch _ et at) = "type mismatch, expected type " ++ show et ++ ", actual type " ++ show at

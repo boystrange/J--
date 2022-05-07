@@ -28,13 +28,13 @@ data Expression
   = Literal Literal
   | Call Id [Expression]
   | New Type Expression
-  | Assign Reference Expression
+  | Assign Pos Reference Expression
   | Ref Reference
-  | Unary SignOp Expression
-  | Binary BinOp Expression Expression
-  | Step StepOp SignOp Reference
+  | Unary Pos SignOp Expression
+  | Binary Pos BinOp Expression Expression
+  | Step Pos StepOp SignOp Reference
   | Cast Type Expression
-  | Rel RelOp Expression Expression
+  | Rel Pos RelOp Expression Expression
   | And Expression Expression
   | Or Expression Expression
   | Not Expression
@@ -44,7 +44,7 @@ data Statement
   | If Expression Statement Statement
   | While Expression Statement
   | Do Statement Expression
-  | Return (Maybe Expression)
+  | Return Pos (Maybe Expression)
   | Block Statement
   | Local Type Id
   | Ignore Expression
@@ -60,7 +60,7 @@ returns Skip = False
 returns (If _ stmt1 stmt2) = returns stmt1 && returns stmt2
 returns (While _ _) = False
 returns (Do stmt _) = returns stmt
-returns (Return _) = True
+returns (Return _ _) = True
 returns (Block stmt) = returns stmt
 returns (Local _ _) = False
 returns (Ignore _) = False

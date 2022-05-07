@@ -32,7 +32,7 @@ import System.Environment (getProgName, getArgs)
 import Control.Monad (when)
 import Control.Exception (catch, throw)
 import qualified Data.Version
-import System.FilePath.Posix (takeBaseName)
+import System.FilePath.Posix (takeFileName, takeBaseName)
 
 -- |Version of the program.
 version :: Data.Version.Version
@@ -43,22 +43,21 @@ main :: IO ()
 main = do
   progName <- getProgName
   (args, file) <- getArgs >>= parse progName
-  catch (compile args file) handler
+  let name = if file == "-" then "stdin" else takeFileName file
+  catch (compile args file) (handler name)
   where
     compile :: [Flag] -> String -> IO ()
     compile args file = do
       source <- if file == "-" then getContents else readFile file
-      let cls = if file == "-" then "default" else takeBaseName file
-      case Parser.parseProgram file source of
-        Left msg -> throw $ ErrorSyntax msg
-        Right methods -> do
-          let no_opt = NoOpt `elem` args
-          methods <- Checker.checkClass cls methods
-          methods' <- (if no_opt then id else Optimizer.optimizeMethods) <$> Compiler.compileClass methods
-          Jasmin.outputClass cls methods'
+      let cls = if file == "-" then "stdin" else takeBaseName file
+      let methods = Parser.parseProgram file source
+      let no_opt = NoOpt `elem` args
+      methods <- Checker.checkClass cls methods
+      methods' <- (if no_opt then id else Optimizer.optimizeMethods) <$> Compiler.compileClass methods
+      Jasmin.outputClass cls methods'
 
-    handler :: MyException -> IO ()
-    handler = printError . show
+    handler :: FilePath -> MyException -> IO ()
+    handler file exc = printError file (posof exc) (show exc)
 
 -- |Representation of supported flags.
 data Flag = Verbose  -- -v --verbose

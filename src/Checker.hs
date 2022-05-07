@@ -87,12 +87,12 @@ checkStmt rt (Do stmt expr) = do
   stmt' <- checkStmt rt stmt
   prop <- checkProp expr
   return $ Typed.Do stmt' prop
-checkStmt rt (Return Nothing) = do
-  unless (rt == VoidType) $ throw $ ErrorTypeMismatch rt VoidType
+checkStmt rt (Return pos Nothing) = do
+  unless (rt == VoidType) $ throw $ ErrorVoidReturn pos rt
   return $ Typed.Return VoidType Nothing
-checkStmt rt (Return (Just expr)) = do
+checkStmt rt (Return pos (Just expr)) = do
   expr' <- checkExpr expr
-  return $ Typed.Return rt (Just (widen rt expr'))
+  return $ Typed.Return rt (Just (widen pos rt expr'))
 checkStmt rt (Block stmt) = do
   pushScope
   stmt' <- checkStmt rt stmt
@@ -117,33 +117,33 @@ checkExpr (Call x exprs) = do
   cls <- getClass x
   unless (length ts == length exprs) $ throw $ ErrorWrongNumberOfArguments x (length ts) (length exprs)
   exprs' <- mapM checkExpr exprs
-  return $ Typed.Call rt cls x (map (uncurry widen) (zip ts exprs'))
+  return $ Typed.Call rt cls x (map (uncurry (widen (identifierPos x))) (zip ts exprs'))
 checkExpr (New t expr) = do
   expr' <- checkExpr expr
-  return $ Typed.New t (widen IntType expr')
+  return $ Typed.New t (widen Somewhere IntType expr')
 checkExpr (Ref ref) = Typed.Ref <$> checkRef ref
-checkExpr (Unary op expr) = do
+checkExpr (Unary pos op expr) = do
   expr' <- checkExpr expr
   let t = typeof expr'
-  unless (isNumeric t) $ throw $ ErrorNumberExpected t
+  unless (isNumeric t) $ throw $ ErrorUnaryOperator pos op t
   return $ Typed.Unary t op expr'
-checkExpr (Binary op expr1 expr2) = do
+checkExpr (Binary pos op expr1 expr2) = do
   expr1' <- checkExpr expr1
   expr2' <- checkExpr expr2
   let t1 = typeof expr1'
   let t2 = typeof expr2'
   case merge t1 t2 of
-    Just t -> return $ Typed.Binary t op (widen t expr1') (widen t expr2')
+    Just t -> return $ Typed.Binary t op (widen pos t expr1') (widen pos t expr2')
     Nothing | stringable op t1 t2 -> return $ Typed.Binary StringType op (string expr1') (string expr2')
-    Nothing -> throw $ ErrorBinaryOperator op t1 t2
-checkExpr (Assign ref expr) = do
+    Nothing -> throw $ ErrorBinaryOperator pos op t1 t2
+checkExpr (Assign pos ref expr) = do
   ref' <- checkRef ref
   expr' <- checkExpr expr
-  return $ Typed.Assign ref' (widen (typeof ref') expr')
-checkExpr (Step step sign ref) = do
+  return $ Typed.Assign ref' (widen pos (typeof ref') expr')
+checkExpr (Step pos step sign ref) = do
   ref' <- checkRef ref
   let t = typeof ref'
-  unless (isNumeric t) $ throw $ ErrorNumberExpected t
+  unless (isNumeric t) $ throw $ ErrorStepOperator pos step t
   return $ Typed.Step t step sign ref'
 checkExpr (Cast t expr) = do
   expr' <- checkExpr expr
@@ -159,9 +159,9 @@ string expr = if isString t then expr else Typed.StringOf t expr
   where
     t = typeof expr
 
-widen :: Type -> Typed.Expression -> Typed.Expression
-widen t expr | widening s t = if t == s then expr else Typed.Convert t expr
-             | otherwise    = throw $ ErrorInvalidWidening s t
+widen :: Pos -> Type -> Typed.Expression -> Typed.Expression
+widen pos t expr | widening s t = if t == s then expr else Typed.Convert t expr
+                 | otherwise    = throw $ ErrorTypeMismatch pos t s
   where
     s = typeof expr
 
@@ -173,14 +173,14 @@ cast t expr = if t == s then expr else Typed.Convert t expr
 checkProp :: Expression -> Checker Typed.Proposition
 checkProp (Literal (Boolean True)) = return Typed.TrueProp
 checkProp (Literal (Boolean False)) = return Typed.FalseProp
-checkProp (Rel op expr1 expr2) = do
+checkProp (Rel pos op expr1 expr2) = do
   expr1' <- checkExpr expr1
   expr2' <- checkExpr expr2
   let t1 = typeof expr1'
   let t2 = typeof expr2'
   case merge t1 t2 of
-    Just t -> return $ Typed.Rel t op (widen t expr1') (widen t expr2')
-    Nothing -> throw $ ErrorBinaryRelation op t1 t2
+    Just t -> return $ Typed.Rel t op (widen pos t expr1') (widen pos t expr2')
+    Nothing -> throw $ ErrorBinaryRelation pos op t1 t2
 checkProp (And prop1 prop2) = do
   prop1' <- checkProp prop1
   prop2' <- checkProp prop2
@@ -190,7 +190,7 @@ checkProp (Or prop1 prop2) = do
   prop2' <- checkProp prop2
   return $ Typed.Or prop1' prop2'
 checkProp (Not prop) = Typed.Not <$> checkProp prop
-checkProp expr = Typed.FromExpression <$> widen BooleanType <$> checkExpr expr
+checkProp expr = Typed.FromExpression <$> widen Somewhere BooleanType <$> checkExpr expr
 
 getMethodType :: Id -> Checker (Type, [Type])
 getMethodType x = do
@@ -214,7 +214,7 @@ checkRef (ArrayRef ref expr) = do
   ref' <- checkRef ref
   expr' <- checkExpr expr
   t <- getArrayType ref'
-  return $ Typed.ArrayRef t ref' (widen IntType expr')
+  return $ Typed.ArrayRef t ref' (widen Somewhere IntType expr')
 
 checkMethod :: Method -> Checker Typed.Method
 checkMethod method@(Method t x args stmt) = do

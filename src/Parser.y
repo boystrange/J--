@@ -19,6 +19,7 @@
 -- |This module implements the parser for FairCheck scripts.
 module Parser (parseProgram) where
 
+import Exceptions
 import Lexer
 import Atoms
 import Type
@@ -157,7 +158,7 @@ Statement
   | WHILEKW '(' Expression ')' Statement { While $3 $5 }
   | DOKW Statement WHILEKW '(' Expression ')' ';' { Do $2 $5 }
   | FORKW '(' SimpleStatement ';' ExpressionOpt ';' SimpleStatement ')' Statement { expandFor $3 $5 $7 $9 }
-  | RETURNKW ExpressionOpt ';' { Return $2 }
+  | RETURNKW ExpressionOpt ';' { Return (getPos $1) $2 }
   | '{' StatementList '}' { Block $2 }
 
 ElseOpt
@@ -198,25 +199,25 @@ Expression
   | NEWKW Type '[' Expression ']' { New $2 $4 }
   | Ref { Ref $1 }
   | '(' Expression ')' { $2 }
-  | Ref '=' Expression { Assign $1 $3 }
-  | Expression '+' Expression { Binary ADD $1 $3 }
-  | Expression '-' Expression { Binary SUB $1 $3 }
-  | Expression '*' Expression { Binary MUL $1 $3 }
-  | Expression '/' Expression { Binary DIV $1 $3 }
-  | Expression '%' Expression { Binary MOD $1 $3 }
+  | Ref '=' Expression { Assign (getPos $2) $1 $3 }
+  | Expression '+' Expression { Binary (getPos $2) ADD $1 $3 }
+  | Expression '-' Expression { Binary (getPos $2) SUB $1 $3 }
+  | Expression '*' Expression { Binary (getPos $2) MUL $1 $3 }
+  | Expression '/' Expression { Binary (getPos $2) DIV $1 $3 }
+  | Expression '%' Expression { Binary (getPos $2) MOD $1 $3 }
   | '(' Type ')' Expression %prec UNARY { Cast $2 $4 }
-  | Ref '++' { Step POST POS $1 }
-  | Ref '--' { Step POST NEG $1 }
-  | '++' Ref { Step PRE POS $2 }
-  | '--' Ref { Step PRE NEG $2 }
-  | '-' Expression %prec UNARY { Unary NEG $2 }
-  | '+' Expression %prec UNARY { Unary POS $2 }
-  | Expression '<' Expression { Rel JLT $1 $3 }
-  | Expression '>' Expression { Rel JGT $1 $3 }
-  | Expression '<=' Expression { Rel JLE $1 $3 }
-  | Expression '>=' Expression { Rel JGE $1 $3 }
-  | Expression '==' Expression { Rel JEQ $1 $3 }
-  | Expression '!=' Expression { Rel JNE $1 $3 }
+  | Ref '++' { Step (getPos $2) POST POS $1 }
+  | Ref '--' { Step (getPos $2) POST NEG $1 }
+  | '++' Ref { Step (getPos $1) PRE POS $2 }
+  | '--' Ref { Step (getPos $1) PRE NEG $2 }
+  | '-' Expression %prec UNARY { Unary (getPos $1) NEG $2 }
+  | '+' Expression %prec UNARY { Unary (getPos $1) POS $2 }
+  | Expression '<' Expression { Rel (getPos $2) JLT $1 $3 }
+  | Expression '>' Expression { Rel (getPos $2) JGT $1 $3 }
+  | Expression '<=' Expression { Rel (getPos $2) JLE $1 $3 }
+  | Expression '>=' Expression { Rel (getPos $2) JGE $1 $3 }
+  | Expression '==' Expression { Rel (getPos $2) JEQ $1 $3 }
+  | Expression '!=' Expression { Rel (getPos $2) JNE $1 $3 }
   | Expression '&&' Expression { And $1 $3 }
   | Expression '||' Expression { Or $1 $3 }
   | '!' Expression { Not $2 }
@@ -231,7 +232,7 @@ Literal
   | STRING { String (read (getText $1)) }
 
 Id
-  : ID { Id (At $ getPos $1) (getText $1) }
+  : ID { Id (getPos $1) (getText $1) }
 
 {
 getText :: Token -> String
@@ -242,8 +243,11 @@ getText (Token _ (TokenDOUBLE x)) = x
 getText (Token _ (TokenCHAR x)) = x
 getText (Token _ (TokenSTRING x)) = x
 
-getPos :: Token -> (Int, Int)
-getPos (Token (AlexPn _ line col) _) = (line, col)
+located :: Token -> a -> Located a
+located token = Located (getPos token)
+
+getPos :: Token -> Pos
+getPos (Token (AlexPn _ line col) _) = At line col
 
 lexwrap :: (Token -> Alex a) -> Alex a
 lexwrap = (alexMonadScan' >>=)
@@ -252,7 +256,7 @@ expandLocals :: Type -> [(Id, Maybe Expression)] -> Statement
 expandLocals t = foldl Seq Skip . map aux
   where
     aux (x, Nothing) = Local t x
-    aux (x, Just expr) = Seq (Local t x) (Ignore $ Assign (IdRef x) expr)
+    aux (x, Just expr) = Seq (Local t x) (Ignore $ Assign (identifierPos x) (IdRef x) expr)
 
 expandFor :: Statement -> Maybe Expression -> Statement -> Statement -> Statement
 expandFor init mexpr incr body = Block $ Seq init $ While test $ Seq body incr
@@ -267,8 +271,11 @@ expandProgram elems = main : methods
     main = Method VoidType (Id Somewhere "main") [(Id Somewhere "_args", ArrayType StringType)] stmt
 
 happyError :: Token -> Alex a
-happyError (Token p t) = alexError' p ("parse error at token '" ++ show t ++ "'")
+happyError (Token (AlexPn _ line col) token) = throw $ ErrorSyntax (At line col) (show token)
 
-parseProgram :: FilePath -> String -> Either String [Method]
-parseProgram = runAlex' parse
+parseProgram :: FilePath -> String -> [Method]
+parseProgram path text = 
+  case runAlex' parse path text of
+    Left _ -> error "impossible"
+    Right methods -> methods
 }

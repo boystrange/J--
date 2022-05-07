@@ -1,9 +1,17 @@
 # TODO
 
+## Mandatory changes
+
 * Array management, instantiation, initialization, `length`
-* Method overloading?
+* Add input methods in standard library
+* `null`
+
+## Important changes
+
+* Improve error messages
+
+## Optional changes
+
+* Method overloading
 * Invoke `jasmin` from `j--`?
 * Optimize increment and decrement operations
-* Add input methods in standard library
-* Improve error messages
-* `null`
