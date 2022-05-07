@@ -21,12 +21,12 @@ import Type
 import Language
 
 data Reference
-  = IdRef Id
+  = IdRef (Located Id)
   | ArrayRef Reference Expression
 
 data Expression
   = Literal Literal
-  | Call Id [Expression]
+  | Call (Located Id) [Expression]
   | New Type Expression
   | Assign Pos Reference Expression
   | Ref Reference
@@ -47,14 +47,23 @@ data Statement
   | Do Statement Expression
   | Return Pos (Maybe Expression)
   | Block Statement
-  | Local Type Id
+  | Local Type (Located Id)
   | Ignore Expression
   | Seq Statement Statement
 
-data Method = Method Type Id [(Id, Type)] Statement
+data Method = Method { methodReturnType :: Type
+                     , methodName :: Located Id
+                     , methodArgs :: [(Located Id, Type)]
+                     , methodBody :: Statement }
 
-typeOfMethod :: Method -> (Id, Type)
-typeOfMethod (Method t x binds _) = (x, MethodType t (map snd binds))
+methodId :: Method -> Id
+methodId = locatedData . methodName
+
+methodPos :: Method -> Pos
+methodPos = locatedPos . methodName
+
+methodType :: Method -> Type
+methodType m = MethodType (methodReturnType m) (map snd (methodArgs m))
 
 returns :: Statement -> Bool
 returns Skip = False

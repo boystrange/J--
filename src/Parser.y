@@ -237,7 +237,7 @@ Literal
   | STRING  { String (read (getText $1)) }
 
 Id
-  : ID { Id (getPos $1) (getText $1) }
+  : ID { Located (getPos $1) (getText $1) }
 
 {
 getText :: Token -> String
@@ -254,11 +254,11 @@ getPos (Token (AlexPn _ line col) _) = At line col
 lexwrap :: (Token -> Alex a) -> Alex a
 lexwrap = (alexMonadScan' >>=)
 
-expandLocals :: Type -> [(Id, Maybe Expression)] -> Statement
+expandLocals :: Type -> [(Located Id, Maybe Expression)] -> Statement
 expandLocals t = foldl Seq Skip . map aux
   where
     aux (x, Nothing) = Local t x
-    aux (x, Just expr) = Seq (Local t x) (Ignore $ Assign (identifierPos x) (IdRef x) expr)
+    aux (x, Just expr) = Seq (Local t x) (Ignore $ Assign (locatedPos x) (IdRef x) expr)
 
 expandFor :: Statement -> Maybe Expression -> Statement -> Statement -> Statement
 expandFor init mexpr incr body = Block $ Seq init $ While test $ Seq body incr
@@ -270,7 +270,7 @@ expandProgram elems = main : methods
   where
     (methods, slist) = partitionEithers elems
     stmt = foldr Seq Skip slist
-    main = Method VoidType (Id Somewhere "main") [(Id Somewhere "_args", ArrayType StringType)] stmt
+    main = Method VoidType (Located Somewhere "main") [(Located Somewhere "_args", ArrayType StringType)] stmt
 
 happyError :: Token -> Alex a
 happyError (Token (AlexPn _ line col) token) = throw $ ErrorSyntax (At line col) (show token)

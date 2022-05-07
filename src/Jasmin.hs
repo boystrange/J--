@@ -243,7 +243,7 @@ outputClass cls methods = do
     hClose handle
 
 library :: String -> Type -> [Type] -> Code
-library m t ts = INVOKE "StandardLibrary" (Id Somewhere m) (MethodType t ts)
+library m t ts = INVOKE "StandardLibrary" m (MethodType t ts)
 
 instance Jasmin Code where
     jasmin (LABEL l)      = show l ++ ":"

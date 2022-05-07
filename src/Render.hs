@@ -85,10 +85,6 @@ instance Show Type where
   show (ArrayType t) = show t ++ "[]"
   show (MethodType rt ts) = "<method>"
 
-instance Show Reference where
-  show (IdRef x) = showWithPos x
-  show (ArrayRef ref _) = show ref ++ "[...]"
-
 instance Show StepOp where
   show PRE = "prefix"
   show POST = "postfix"

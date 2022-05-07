@@ -47,27 +47,27 @@ pushScope = modifySymbolTable SymbolTable.push
 popScope :: Checker ()
 popScope = modifySymbolTable SymbolTable.pop
 
-getEntry :: Id -> Checker Entry
+getEntry :: Located Id -> Checker Entry
 getEntry x = SymbolTable.get x <$> table <$> State.get
 
-getType :: Id -> Checker Type
+getType :: Located Id -> Checker Type
 getType x = SymbolTable.entryType <$> getEntry x
 
-getSlot :: Id -> Checker Slot
+getSlot :: Located Id -> Checker Slot
 getSlot x = SymbolTable.entrySlot <$> getEntry x
 
-getClass :: Id -> Checker String
+getClass :: Located Id -> Checker String
 getClass x = do
   Just cls <- SymbolTable.entryClass <$> getEntry x
   return cls
 
-setEntry :: Id -> Entry -> Checker ()
+setEntry :: Located Id -> Entry -> Checker ()
 setEntry x entry = modifySymbolTable (SymbolTable.set x entry)
 
-newEntry :: Maybe String -> Id -> Type -> Checker ()
+newEntry :: Maybe String -> Located Id -> Type -> Checker ()
 newEntry mcls x t = modifySymbolTable (SymbolTable.new mcls x t)
 
-initializeEntry :: Id -> Checker ()
+initializeEntry :: Located Id -> Checker ()
 initializeEntry x = do
   entry <- getEntry x
   setEntry x (entry { SymbolTable.entryInit = True })
@@ -117,7 +117,7 @@ checkExpr (Call x exprs) = do
   cls <- getClass x
   unless (length ts == length exprs) $ throw $ ErrorWrongNumberOfArguments x (length ts) (length exprs)
   exprs' <- mapM checkExpr exprs
-  return $ Typed.Call rt cls x (map (uncurry (widen (identifierPos x))) (zip ts exprs'))
+  return $ Typed.Call rt cls (locatedData x) (map (uncurry (widen (locatedPos x))) (zip ts exprs'))
 checkExpr (New t expr) = do
   expr' <- checkExpr expr
   return $ Typed.New t (widen Somewhere IntType expr')
@@ -205,7 +205,7 @@ checkProp (Or prop1 prop2) = do
 checkProp (Not prop) = Typed.Not <$> checkProp prop
 checkProp expr = Typed.FromExpression <$> widen Somewhere BooleanType <$> checkExpr expr
 
-getMethodType :: Id -> Checker (Type, [Type])
+getMethodType :: Located Id -> Checker (Type, [Type])
 getMethodType x = do
   t <- getType x
   case t of
@@ -222,7 +222,7 @@ checkRef :: Reference -> Checker Typed.Reference
 checkRef (IdRef x) = do
   t <- getType x
   n <- getSlot x
-  return $ Typed.IdRef t n x
+  return $ Typed.IdRef t n (locatedData x)
 checkRef (ArrayRef ref expr) = do
   ref' <- checkRef ref
   expr' <- checkExpr expr
@@ -238,17 +238,17 @@ checkMethod method@(Method t x args stmt) = do
   when (not ret && t /= VoidType) $ throw $ ErrorMissingReturn x
   let stmt'' = if ret then stmt' else Typed.Seq stmt' (Typed.Return VoidType Nothing)
   popScope
-  return $ Typed.Method (snd (typeOfMethod method)) x stmt''
+  return $ Typed.Method (methodType method) (locatedData x) stmt''
 
 library :: [(Id, Type)]
 library =
-  [ (Id Somewhere "print",             MethodType VoidType   [StringType])
-  , (Id Somewhere "println",           MethodType VoidType   [StringType])
-  , (Id Somewhere "boolean_to_string", MethodType StringType [BooleanType])
-  , (Id Somewhere "int_to_string",     MethodType StringType [IntType])
-  , (Id Somewhere "float_to_string",   MethodType StringType [FloatType])
-  , (Id Somewhere "double_to_string",  MethodType StringType [DoubleType])
-  , (Id Somewhere "char_to_string",    MethodType StringType [CharType])
+  [ ("print",             MethodType VoidType   [StringType])
+  , ("println",           MethodType VoidType   [StringType])
+  , ("boolean_to_string", MethodType StringType [BooleanType])
+  , ("int_to_string",     MethodType StringType [IntType])
+  , ("float_to_string",   MethodType StringType [FloatType])
+  , ("double_to_string",  MethodType StringType [DoubleType])
+  , ("char_to_string",    MethodType StringType [CharType])
   ]
 
 checkClass :: String -> [Method] -> IO [Typed.Method]
@@ -258,6 +258,6 @@ checkClass cls methods = do
     aux :: Checker [Typed.Method]
     aux = do
       pushScope
-      forM_ library (uncurry (newEntry (Just "StandardLibrary")))
-      forM_ methods (uncurry (newEntry (Just cls)) . typeOfMethod)
+      forM_ library (\(x, t) -> newEntry (Just "StandardLibrary") (Located Somewhere x) t)
+      forM_ methods (\m -> newEntry (Just cls) (methodName m) (methodType m))
       mapM checkMethod methods

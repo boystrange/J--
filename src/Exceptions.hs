@@ -29,34 +29,34 @@ import Control.Exception (Exception)
 data MyException
   = ErrorSyntax Pos String
   | ErrorVoidReturn Pos Type
-  | ErrorWrongNumberOfArguments Id Int Int
+  | ErrorWrongNumberOfArguments (Located Id) Int Int
   | ErrorTypeMismatch Pos Type Type
   | ErrorStepOperator Pos StepOp Type
   | ErrorUnaryOperator Pos SignOp Type
   | ErrorBinaryOperator Pos BinOp Type Type
   | ErrorBinaryRelation Pos RelOp Type Type
-  | ErrorMethodExpected Id Type
+  | ErrorMethodExpected (Located Id) Type
   | ErrorArrayExpected Type
-  | ErrorMissingReturn Id
-  | ErrorUnknownIdentifier Id
-  | ErrorMultipleDeclarations Id
+  | ErrorMissingReturn (Located Id)
+  | ErrorUnknownIdentifier (Located Id)
+  | ErrorMultipleDeclarations (Located Id)
 
 instance Exception MyException
 
 posof :: MyException -> Pos
 posof (ErrorSyntax pos _) = pos
 posof (ErrorVoidReturn pos _) = pos
-posof (ErrorWrongNumberOfArguments x _ _) = identifierPos x
+posof (ErrorWrongNumberOfArguments x _ _) = locatedPos x
 posof (ErrorStepOperator pos _ _) = pos
 posof (ErrorUnaryOperator pos _ _) = pos
 posof (ErrorBinaryOperator pos _ _ _) = pos
 posof (ErrorTypeMismatch pos _ _) = pos
 posof (ErrorBinaryRelation pos _ _ _) = pos
-posof (ErrorMethodExpected x _) = identifierPos x
+posof (ErrorMethodExpected x _) = locatedPos x
 posof (ErrorArrayExpected _) = Somewhere
-posof (ErrorMissingReturn x) = identifierPos x
-posof (ErrorUnknownIdentifier x) = identifierPos x
-posof (ErrorMultipleDeclarations x) = identifierPos x
+posof (ErrorMissingReturn x) = locatedPos x
+posof (ErrorUnknownIdentifier x) = locatedPos x
+posof (ErrorMultipleDeclarations x) = locatedPos x
 
 instance Show MyException where
   show (ErrorSyntax _ tok) = "syntax error at token '" ++ tok ++ "'"

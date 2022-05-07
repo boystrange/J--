@@ -26,23 +26,20 @@ instance Show Pos where
   show Somewhere = ""
   show (At l c) = show l ++ "," ++ show c
 
-data Id = Id { identifierPos :: Pos
-             , identifierName :: String }
-instance Show Id where
-  show = identifierName
+data Located a = Located { locatedPos :: Pos
+                         , locatedData :: a }
 
--- |Show an identifier along with its position in the source code, if known.
-showWithPos :: Id -> String
-showWithPos u = show u ++ show (identifierPos u)
+instance Eq a => Eq (Located a) where
+  (==) u v = (==) (locatedData u) (locatedData v)
 
--- |Two identifiers are the same regardless of the position in which they occur.
-instance Eq Id where
-  (==) u v = show u == show v
+instance Ord a => Ord (Located a) where
+  compare u v = compare (locatedData u) (locatedData v)
 
--- |Two identifiers are ordered regardless of the position in which they occur.
-instance Ord Id where
-  compare u v = compare (show u) (show v)
-
+instance Show a => Show (Located a) where
+  show = show . locatedData
+  
+type Id = String
+             
 type Slot = Int
 
 data Label = L Int
