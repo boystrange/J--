@@ -32,6 +32,7 @@ data Expression
   | Ref Reference
   | Unary Pos SignOp Expression
   | Binary Pos BinOp Expression Expression
+  | Ternary Pos Expression Expression Expression
   | Step Pos StepOp SignOp Reference
   | Cast Pos Type Expression
   | Rel Pos RelOp Expression Expression

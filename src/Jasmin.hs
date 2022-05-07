@@ -19,31 +19,62 @@ module Jasmin where
 import Atoms
 import Type
 import Language
-import Render ()
+import Render (printWarning)
 import Data.Char (ord)
 import Control.Monad (forM_, unless)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Control.Monad.State.Lazy (StateT)
+import Control.Monad.State.Lazy (StateT, liftIO)
 import qualified Control.Monad.State.Lazy as State
 import System.IO (Handle, hClose, hFlush, hPutStrLn, openFile, IOMode(..))
 
 data JasminCheckerState = JasminCheckerState { frame :: Int
-                                             , stack :: Int
-                                             , maxStack :: Int
-                                             , lmap :: Map Label Int }
+                                             , stype :: Maybe [Type]
+                                             , ltype :: Map Label [Type]
+                                             , stack :: Int }
 
 initialJasminCheckerState :: Type -> JasminCheckerState
-initialJasminCheckerState (MethodType _ ts) = JasminCheckerState {
-    frame = sum (map sizeOf ts),
-    stack = 0,
-    maxStack = 0,
-    lmap = Map.empty
-}
+initialJasminCheckerState (MethodType _ ts)
+    = JasminCheckerState
+    { frame = sum (map sizeOf ts)
+    , stype = Just []
+    , ltype = Map.empty 
+    , stack = 0 }
 
 type JasminChecker = StateT JasminCheckerState IO
+
+pop :: Type -> JasminChecker ()
+pop t = do
+    state <- State.get
+    case stype state of
+        Nothing -> liftIO $ Render.printWarning $ "popping " ++ show t ++ " from undefined stack"
+        Just [] -> liftIO $ Render.printWarning $ "popping " ++ show t ++ " from empty stack"
+        Just (s : ts) | t == s -> State.put (state { stype = Just ts })
+        Just (s : _) -> liftIO $ Render.printWarning $ "popping " ++ show t ++ " from stack having " ++ show s ++ " on top"
+
+push :: Type -> JasminChecker ()
+push t = do
+    state <- State.get
+    case stype state of
+        Nothing -> liftIO $ Render.printWarning $ "pushing " ++ show t ++ " on undefined stack"
+        Just ts -> do
+            let m = max (stack state) (sizeOf t + sum (map sizeOf ts))
+            State.put (state { stype = Just (t : ts), stack = m })
+
+define :: [Type] -> JasminChecker ()
+define ts = do
+    state <- State.get
+    case stype state of
+        Nothing -> State.put (state { stype = Just ts })
+        Just ts' | ts == ts' -> liftIO $ Render.printWarning $ "setting wrong stack " ++ show ts
+        Just _ -> return ()
+
+undefineStack :: JasminChecker ()
+undefineStack = do
+    state <- State.get
+    State.put (state { stype = Nothing })
 
 class Jasmin a where
     jasmin :: a -> String
@@ -108,62 +139,88 @@ data Code
     | CONVERT Type Type
     deriving Eq
 
-locals :: Code -> Int
-locals (LOAD t i) = i + sizeOf t
-locals (STORE t i) = i + sizeOf t
-locals _ = 0
-
 labels :: Code -> [Label]
 labels (GOTO l) = [l]
 labels (IF _ l) = [l]
 labels (IFCMP _ _ l) = [l]
 labels _ = []
 
-delta :: Code -> Int
-delta (LABEL _) = 0
-delta (GOTO _) = 0
-delta (LDC lit) = sizeOf (typeof lit)
-delta (LOAD t _) = sizeOf t
-delta (STORE t _) = negate (sizeOf t)
-delta (ALOAD t) = sizeOf t - 2
-delta (ASTORE t) = 2 + sizeOf t
-delta NOP = 0
-delta (POP t) = negate (sizeOf t)
-delta (DUP t) = sizeOf t
-delta (DUP_X2 t) = sizeOf t
-delta (RETURN t) = negate (sizeOf t)
-delta (CMP t) = 1 - 2 * sizeOf t
-delta (IF _ _) = -1
-delta (IFCMP t _ _) = negate (2 * sizeOf t)
-delta (UNARY _ _) = 0
-delta (BINARY t _) = negate (sizeOf t)
-delta (INVOKE _ _ (MethodType t ts)) = sizeOf t - sum (map sizeOf ts)
-delta (CONVERT t s) = sizeOf s - sizeOf t
-
-checkLabel :: Label -> JasminChecker ()
-checkLabel l = do
-    state <- State.get
-    let m = stack state
-    case Map.lookup l (lmap state) of
-        Just n -> do
-            unless (m == n) $ error $ "label " ++ show l ++ " was defined at " ++ show n ++ " but now the stack is " ++ show m
+getStackType :: JasminChecker [Type]
+getStackType = do
+    st <- stype <$> State.get
+    case st of
         Nothing -> do
-            let lmap' = Map.insert l m (lmap state)
-            State.put (state { lmap = lmap' })
+            liftIO $ Render.printWarning "undefined stack"
+            return []
+        Just ts -> return ts
 
-checkCode :: Code -> JasminChecker ()
-checkCode (LABEL l) = checkLabel l
-checkCode i = do
+setStackType :: [Type] -> JasminChecker ()
+setStackType ts = do
     state <- State.get
-    let frame' = max (frame state) (locals i)
-    let stack' = stack state + delta i
-    let maxStack' = max (maxStack state) stack'
-    unless (stack' >= 0) $ error "negative stack!"
-    State.put (state { frame = frame', stack = stack', maxStack = maxStack' })
-    forM_ (labels i) checkLabel
+    case stype state of
+        Nothing -> State.put (state { stype = Just ts })
+        Just ss | ts == ss -> return ()
+        Just ss -> liftIO $ Render.printWarning $ "setting stack to " ++ show ts ++ " but currently is " ++ show ss
+
+setLabelType :: Label -> [Type] -> JasminChecker ()
+setLabelType l ts = do
+    state <- State.get
+    case Map.lookup l (ltype state) of
+        Nothing -> State.put (state { ltype = Map.insert l ts (ltype state) })
+        Just ss | ts == ss -> return ()
+        Just ss -> liftIO $ Render.printWarning $ "label " ++ show l ++ " has already type " ++ show ss
+
+jump :: Label -> JasminChecker ()
+jump l = do
+    state <- State.get
+    ts <- getStackType
+    setLabelType l ts
+
+access :: Type -> Slot -> JasminChecker ()
+access t i = do
+    state <- State.get
+    State.put (state { frame = max (frame state) (i + sizeOf t) })
+
+check :: Code -> JasminChecker ()
+check (LABEL l) = do
+    state <- State.get
+    case Map.lookup l (ltype state) of
+        Just ts -> setStackType ts
+        Nothing -> do
+            ts <- getStackType
+            State.put (state { stype = Just ts })
+check (GOTO l) = jump l >> undefineStack
+check (LDC lit) = push (typeof lit)
+check (LOAD t i) = push t >> access t i
+check (STORE t i) = pop t >> access t i
+check (ALOAD t) = do
+    pop IntType
+    pop (ArrayType t)
+    push t
+check (ASTORE t) = do
+    pop t
+    pop IntType
+    pop (ArrayType t)
+check NOP = return ()
+check (POP t) = pop t
+check (DUP t) = pop t >> push t >> push t
+check (DUP_X2 t) = undefined
+check (RETURN VoidType) = setStackType [] >> undefineStack
+check (RETURN t) = setStackType [t] >> undefineStack
+check (CMP t) = pop t >> pop t >> push IntType
+check (IF _ l) = do
+    pop IntType
+    jump l
+check (IFCMP t _ l) = pop t >> pop t >> jump l
+check (UNARY t _) = pop t >> push t
+check (BINARY t _) = pop t >> pop t >> push t
+check (INVOKE _ _ (MethodType t ts)) = do
+    forM_ (reverse ts) pop
+    push t
+check (CONVERT t s) = pop t >> push s
 
 checkMethod :: [Code] -> JasminChecker ()
-checkMethod is = forM_ is checkCode
+checkMethod is = forM_ is check
 
 data Method = Method Id Type [Code]
 
@@ -172,7 +229,7 @@ outputMethod output (Method m t is) = do
     state <- State.execStateT (checkMethod is) (initialJasminCheckerState t)
     output $ ".method public static " ++ show m ++ jasmin t
     output $ "    .limit locals " ++ show (frame state)
-    output $ "    .limit stack " ++ show (maxStack state)
+    output $ "    .limit stack " ++ show (stack state)
     forM_ is (output . jasmin)
     output $ ".end method"
 

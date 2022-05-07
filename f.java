@@ -14,18 +14,7 @@
 
 // Copyright 2022 Luca Padovani
 
-int iterative_fact(int n) {
-  int r = 1;
-  while (n > 0) {
-    r = r * n;
-    n--;
-  }
-  return r;
-}
-
 int recursive_fact(int n) {
   return n == 0 ? 1 : n * recursive_fact(n - 1);
 }
 
-for (int i = 0; i < 14; i++)
-  println(i + "! = " + recursive_fact(i) + " = " + iterative_fact(i));

@@ -163,6 +163,17 @@ compileExpr (Binary t op expr1 expr2) = do
     if t == StringType && op == ADD
         then emit $ Jasmin.library "String_concat" StringType [StringType, StringType]
         else emit $ Jasmin.BINARY t op
+compileExpr (Ternary _ prop expr1 expr2) = do
+    tt <- newLabel
+    ff <- newLabel
+    next <- newLabel
+    compileProp tt ff prop
+    emit $ Jasmin.LABEL tt
+    compileExpr expr1
+    emit $ Jasmin.GOTO next
+    emit $ Jasmin.LABEL ff
+    compileExpr expr2
+    emit $ Jasmin.LABEL next
 compileExpr (Step t step sign ref) = compileStep t step sign ref
 compileExpr (Convert t expr) = do
     compileExpr expr

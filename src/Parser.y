@@ -86,9 +86,11 @@ import Control.Exception
   '*'       { Token _ TokenMUL }
   '/'       { Token _ TokenDIV }
   '%'       { Token _ TokenMOD }
+  '?'       { Token _ TokenQMARK }
   '!'       { Token _ TokenEMARK }
 
 %right '='
+%nonassoc '?' ':'
 %left '||' '&&'
 %nonassoc '<' '>' '<=' '>=' '==' '!='
 %left '+' '-'
@@ -221,6 +223,7 @@ Expression
   | Expression '&&' Expression { And $1 $3 }
   | Expression '||' Expression { Or $1 $3 }
   | '!' Expression { Not $2 }
+  | Expression '?' Expression ':' Expression { Ternary (getPos $2) $1 $3 $5 }
 
 Literal
   : TRUEKW { Boolean True }

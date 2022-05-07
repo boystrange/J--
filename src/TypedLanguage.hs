@@ -32,6 +32,7 @@ data Expression
   | Assign Reference Expression
   | Unary Type SignOp Expression
   | Binary Type BinOp Expression Expression
+  | Ternary Type Proposition Expression Expression
   | Step Type StepOp SignOp Reference
   | Convert Type Expression
   | StringOf Type Expression
@@ -69,8 +70,8 @@ instance Typed Expression where
   typeof (Assign ref _) = typeof ref
   typeof (Unary t _ _) = t
   typeof (Binary t _ _ _) = t
+  typeof (Ternary t _ _ _) = t
   typeof (Step t _ _ _) = t
   typeof (Convert t _) = t
   typeof (StringOf _ _) = StringType
   typeof (FromProposition _) = BooleanType
-
