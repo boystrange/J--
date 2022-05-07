@@ -44,22 +44,23 @@ import Control.Exception
   DOUBLE    { $$@(Token _ (TokenDOUBLE _)) }
   CHAR      { $$@(Token _ (TokenCHAR _)) }
   STRING    { $$@(Token _ (TokenSTRING _)) }
-  VOIDKW    { Token _ TokenVoid }
-  BOOLEANKW { Token _ TokenBoolean }
-  INTKW     { Token _ TokenInt }
-  FLOATKW   { Token _ TokenFloat }
-  DOUBLEKW  { Token _ TokenDouble }
-  CHARKW    { Token _ TokenChar }
-  STRINGKW  { Token _ TokenString }
-  IFKW      { Token _ TokenIf }
-  ELSEKW    { Token _ TokenElse }
-  WHILEKW   { Token _ TokenWhile }
-  DOKW      { Token _ TokenDo }
-  FORKW     { Token _ TokenFor }
-  NEWKW     { Token _ TokenNew }
-  TRUEKW    { Token _ TokenTrue }
-  FALSEKW   { Token _ TokenFalse }
-  RETURNKW  { Token _ TokenReturn }
+  'void'    { Token _ TokenVoid }
+  'boolean' { Token _ TokenBoolean }
+  'int'     { Token _ TokenInt }
+  'float'   { Token _ TokenFloat }
+  'double'  { Token _ TokenDouble }
+  'char'    { Token _ TokenChar }
+  'String'  { Token _ TokenString }
+  'if'      { Token _ TokenIf }
+  'else'    { Token _ TokenElse }
+  'while'   { Token _ TokenWhile }
+  'do'      { Token _ TokenDo }
+  'for'     { Token _ TokenFor }
+  'new'     { Token _ TokenNew }
+  'true'    { Token _ TokenTrue }
+  'false'   { Token _ TokenFalse }
+  'return'  { Token _ TokenReturn }
+  'length'  { Token _ TokenLength }
   '='       { Token _ TokenEQ }
   '=='      { Token _ TokenEQQ }
   '!='      { Token _ TokenNE }
@@ -96,7 +97,7 @@ import Control.Exception
 %left '+' '-'
 %left '*' '/' '%'
 %nonassoc '!' UNARY
-%nonassoc '.'
+%left '.'
 
 %%
 
@@ -134,13 +135,13 @@ Arg
 -- TYPES
 
 Type
-  : VOIDKW { VoidType }
-  | BOOLEANKW { BooleanType }
-  | INTKW     { IntType }
-  | FLOATKW   { FloatType }
-  | DOUBLEKW  { DoubleType }
-  | CHARKW    { CharType }
-  | STRINGKW  { StringType }
+  : 'void' { VoidType }
+  | 'boolean' { BooleanType }
+  | 'int'     { IntType }
+  | 'float'   { FloatType }
+  | 'double'  { DoubleType }
+  | 'char'    { CharType }
+  | 'String'  { StringType }
   | Type '[' ']' { ArrayType $1 }
 
 -- STATEMENTS
@@ -156,83 +157,84 @@ SimpleStatement
 
 Statement
   : SimpleStatement ';' { $1 }
-  | IFKW '(' Expression ')' Statement ElseOpt { If $3 $5 $6 }
-  | WHILEKW '(' Expression ')' Statement { While $3 $5 }
-  | DOKW Statement WHILEKW '(' Expression ')' ';' { Do $2 $5 }
-  | FORKW '(' SimpleStatement ';' ExpressionOpt ';' SimpleStatement ')' Statement { expandFor $3 $5 $7 $9 }
-  | RETURNKW ExpressionOpt ';' { Return (getPos $1) $2 }
+  | 'if' '(' Expression ')' Statement ElseOpt { If $3 $5 $6 }
+  | 'while' '(' Expression ')' Statement { While $3 $5 }
+  | 'do' Statement 'while' '(' Expression ')' ';' { Do $2 $5 }
+  | 'for' '(' SimpleStatement ';' ExpressionOpt ';' SimpleStatement ')' Statement { expandFor $3 $5 $7 $9 }
+  | 'return' ExpressionOpt ';' { Return (getPos $1) $2 }
   | '{' StatementList '}' { Block $2 }
 
 ElseOpt
-  : { Skip }
-  | ELSEKW Statement { $2 }
+  :                  { Skip }
+  | 'else' Statement { $2 }
 
 InitNeList
-  : Init { [$1] }
+  : Init                { [$1] }
   | Init ',' InitNeList { $1 : $3 }
 
 Init
-  : Id { ($1, Nothing) }
+  : Id                { ($1, Nothing) }
   | Id '=' Expression { ($1, Just $3) }
 
 -- REFERENCES
 
 Ref
-  : Id { IdRef $1 }
+  : Id                     { IdRef $1 }
   | Ref '[' Expression ']' { ArrayRef $1 $3 }
 
 -- EXPRESSIONS
 
 ExpressionOpt
-  : { Nothing }
+  :            { Nothing }
   | Expression { Just $1 }
 
 ExpressionList
-  : { [] }
+  :                  { [] }
   | ExpressionNeList { $1 }
 
 ExpressionNeList
-  : Expression { [$1] }
+  : Expression                      { [$1] }
   | Expression ',' ExpressionNeList { $1 : $3 }
 
 Expression
-  : Literal { Literal $1 }
-  | Id '(' ExpressionList ')' { Call $1 $3 }
-  | NEWKW Type '[' Expression ']' { New $2 $4 }
-  | Ref { Ref $1 }
-  | '(' Expression ')' { $2 }
-  | Ref '=' Expression { Assign (getPos $2) $1 $3 }
-  | Expression '+' Expression { Binary (getPos $2) ADD $1 $3 }
-  | Expression '-' Expression { Binary (getPos $2) SUB $1 $3 }
-  | Expression '*' Expression { Binary (getPos $2) MUL $1 $3 }
-  | Expression '/' Expression { Binary (getPos $2) DIV $1 $3 }
-  | Expression '%' Expression { Binary (getPos $2) MOD $1 $3 }
-  | '(' Type ')' Expression %prec UNARY { Cast (getPos $1) $2 $4 }
-  | Ref '++' { Step (getPos $2) POST POS $1 }
-  | Ref '--' { Step (getPos $2) POST NEG $1 }
-  | '++' Ref { Step (getPos $1) PRE POS $2 }
-  | '--' Ref { Step (getPos $1) PRE NEG $2 }
-  | '-' Expression %prec UNARY { Unary (getPos $1) NEG $2 }
-  | '+' Expression %prec UNARY { Unary (getPos $1) POS $2 }
-  | Expression '<' Expression { Rel (getPos $2) JLT $1 $3 }
-  | Expression '>' Expression { Rel (getPos $2) JGT $1 $3 }
-  | Expression '<=' Expression { Rel (getPos $2) JLE $1 $3 }
-  | Expression '>=' Expression { Rel (getPos $2) JGE $1 $3 }
-  | Expression '==' Expression { Rel (getPos $2) JEQ $1 $3 }
-  | Expression '!=' Expression { Rel (getPos $2) JNE $1 $3 }
-  | Expression '&&' Expression { And $1 $3 }
-  | Expression '||' Expression { Or $1 $3 }
-  | '!' Expression { Not $2 }
+  : Literal                                  { Literal $1 }
+  | Id '(' ExpressionList ')'                { Call $1 $3 }
+  | 'new' Type '[' Expression ']'            { New $2 $4 }
+  | Ref                                      { Ref $1 }
+  | '(' Expression ')'                       { $2 }
+  | Ref '=' Expression                       { Assign (getPos $2) $1 $3 }
+  | Expression '+' Expression                { Binary (getPos $2) ADD $1 $3 }
+  | Expression '-' Expression                { Binary (getPos $2) SUB $1 $3 }
+  | Expression '*' Expression                { Binary (getPos $2) MUL $1 $3 }
+  | Expression '/' Expression                { Binary (getPos $2) DIV $1 $3 }
+  | Expression '%' Expression                { Binary (getPos $2) MOD $1 $3 }
+  | '(' Type ')' Expression %prec UNARY      { Cast (getPos $1) $2 $4 }
+  | Ref '++'                                 { Step (getPos $2) POST POS $1 }
+  | Ref '--'                                 { Step (getPos $2) POST NEG $1 }
+  | '++' Ref                                 { Step (getPos $1) PRE POS $2 }
+  | '--' Ref                                 { Step (getPos $1) PRE NEG $2 }
+  | '-' Expression %prec UNARY               { Unary (getPos $1) NEG $2 }
+  | '+' Expression %prec UNARY               { Unary (getPos $1) POS $2 }
+  | Expression '<' Expression                { Rel (getPos $2) JLT $1 $3 }
+  | Expression '>' Expression                { Rel (getPos $2) JGT $1 $3 }
+  | Expression '<=' Expression               { Rel (getPos $2) JLE $1 $3 }
+  | Expression '>=' Expression               { Rel (getPos $2) JGE $1 $3 }
+  | Expression '==' Expression               { Rel (getPos $2) JEQ $1 $3 }
+  | Expression '!=' Expression               { Rel (getPos $2) JNE $1 $3 }
+  | Expression '&&' Expression               { And $1 $3 }
+  | Expression '||' Expression               { Or $1 $3 }
+  | '!' Expression                           { Not $2 }
   | Expression '?' Expression ':' Expression { Ternary (getPos $2) $1 $3 $5 }
+  | Expression '.' 'length'                  { undefined }
 
 Literal
-  : TRUEKW { Boolean True }
-  | FALSEKW { Boolean False }
-  | INT { Int (read (getText $1)) }
-  | FLOAT { Float (read (getText $1)) }
-  | DOUBLE { Double (read (getText $1)) }
-  | CHAR { Char $ (read (getText $1)) }
-  | STRING { String (read (getText $1)) }
+  : 'true'  { Boolean True }
+  | 'false' { Boolean False }
+  | INT     { Int (read (getText $1)) }
+  | FLOAT   { Float (read (getText $1)) }
+  | DOUBLE  { Double (read (getText $1)) }
+  | CHAR    { Char (read (getText $1)) }
+  | STRING  { String (read (getText $1)) }
 
 Id
   : ID { Id (getPos $1) (getText $1) }
