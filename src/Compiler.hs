@@ -181,17 +181,6 @@ compileExpr (Convert t expr) = do
 compileExpr (StringOf t expr) = do
     compileExpr expr
     unless (t == StringType) $ emit $ Jasmin.library (show t ++ "_to_String") StringType [t]
-compileExpr (FromProposition prop) = do
-    tt <- newLabel
-    ff <- newLabel
-    next <- newLabel
-    compileProp tt ff prop
-    emit $ Jasmin.LABEL tt
-    emit $ Jasmin.LDC (Boolean True)
-    emit $ Jasmin.GOTO next
-    emit $ Jasmin.LABEL ff
-    emit $ Jasmin.LDC (Boolean False)
-    emit $ Jasmin.LABEL next
 
 compileRef :: Reference -> Compiler ()
 compileRef (IdRef t i _) = emit $ Jasmin.LOAD t i

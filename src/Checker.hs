@@ -157,7 +157,9 @@ checkExpr (Step pos step sign ref) = do
 checkExpr (Cast pos t expr) = do
   expr' <- checkExpr expr
   return $ cast pos t expr'
-checkExpr expr = Typed.FromProposition <$> checkProp expr
+checkExpr expr = do
+  prop <- checkProp expr
+  return $ Typed.Ternary BooleanType prop (Typed.Literal (Boolean True)) (Typed.Literal (Boolean False))
 
 stringable :: BinOp -> Type -> Type -> Bool
 stringable ADD t s = (isString t || isString s) && isStringable t && isStringable s

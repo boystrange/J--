@@ -36,7 +36,6 @@ data Expression
   | Step Type StepOp SignOp Reference
   | Convert Type Expression
   | StringOf Type Expression
-  | FromProposition Proposition
 
 data Proposition
   = TrueProp
@@ -74,4 +73,3 @@ instance Typed Expression where
   typeof (Step t _ _ _) = t
   typeof (Convert t _) = t
   typeof (StringOf _ _) = StringType
-  typeof (FromProposition _) = BooleanType

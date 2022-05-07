@@ -26,8 +26,7 @@ int iterative_fibo(int n) {
 }
 
 int recursive_fibo(int n) {
-  if (n <= 1) return n;
-  else return recursive_fibo(n - 1) + recursive_fibo(n - 2);
+  return n <= 1 ? n : recursive_fibo(n - 1) + recursive_fibo(n - 2);
 }
 
 for (int i = 0; i < 40; i++)
