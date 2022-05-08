@@ -135,13 +135,13 @@ Arg
 -- TYPES
 
 Type
-  : 'void' { VoidType }
-  | 'boolean' { BooleanType }
-  | 'int'     { IntType }
-  | 'float'   { FloatType }
-  | 'double'  { DoubleType }
-  | 'char'    { CharType }
-  | 'String'  { StringType }
+  : 'void'       { VoidType }
+  | 'boolean'    { BooleanType }
+  | 'int'        { IntType }
+  | 'float'      { FloatType }
+  | 'double'     { DoubleType }
+  | 'char'       { CharType }
+  | 'String'     { StringType }
   | Type '[' ']' { ArrayType $1 }
 
 -- STATEMENTS
@@ -184,6 +184,25 @@ Ref
 
 -- EXPRESSIONS
 
+ArrayExpressionOpt
+  :                 { Nothing }
+  | ArrayExpression { Just $1 }
+
+ArrayExpression
+  : '{' InitExpressionList '}' { $2 }
+
+InitExpression
+  : Expression      { SimpleInit $1 }
+  | ArrayExpression { ArrayInit $1 }
+
+InitExpressionList
+  :                      { [] }
+  | InitExpressionNeList { $1 }
+
+InitExpressionNeList
+  : InitExpression                          { [$1] }
+  | InitExpression ',' InitExpressionNeList { $1 : $3 }
+
 ExpressionOpt
   :            { Nothing }
   | Expression { Just $1 }
@@ -196,10 +215,18 @@ ExpressionNeList
   : Expression                      { [$1] }
   | Expression ',' ExpressionNeList { $1 : $3 }
 
+Dimensions
+  : Dimension            { [$1] }
+  | Dimension Dimensions { $1 : $2 }
+
+Dimension
+  : '[' Expression ']' { $2 }
+
 Expression
   : Literal                                  { Literal $1 }
   | Id '(' ExpressionList ')'                { Call $1 $3 }
-  | 'new' Type '[' Expression ']'            { New $2 $4 }
+  | 'new' Type Dimensions                    { New (getPos $1) $2 $3 }
+  | 'new' Type ArrayExpression               { Array (getPos $1) $2 (ArrayInit $3) } 
   | Ref                                      { Ref $1 }
   | '(' Expression ')'                       { $2 }
   | Ref '=' Expression                       { Assign (getPos $2) $1 $3 }
@@ -259,6 +286,9 @@ expandLocals t = foldl Seq Skip . map aux
   where
     aux (x, Nothing) = Local t x
     aux (x, Just expr) = Seq (Local t x) (Ignore $ Assign (locatedPos x) (IdRef x) expr)
+
+-- expandInit :: Type -> Located Id -> InitExpression -> Statement
+-- expandInit = undefined
 
 expandFor :: Statement -> Maybe Expression -> Statement -> Statement -> Statement
 expandFor init mexpr incr body = Block $ Seq init $ While test $ Seq body incr

@@ -130,7 +130,7 @@ data Code
     | NOP
     | POP Type
     | DUP Type
-    | DUP_X2 Type
+    | DUP_X2 Type Type Type
     | RETURN Type
     | CMP Type
     | IF RelOp Label
@@ -139,6 +139,8 @@ data Code
     | BINARY Type BinOp
     | INVOKE String Id Type
     | CONVERT Type Type
+    | NEWARRAY Type
+    | MULTINEWARRAY Type Int
     deriving Eq
 
 labels :: Code -> [Label]
@@ -206,7 +208,7 @@ check (ASTORE t) = do
 check NOP = return ()
 check (POP t) = pop t
 check (DUP t) = pop t >> push t >> push t
-check (DUP_X2 t) = undefined
+check (DUP_X2 t s r) = pop r >> pop s >> pop t >> push r >> push t >> push s >> push r
 check (RETURN t) = pop t >> setStackType [] >> undefineStack
 check (CMP t) = pop t >> pop t >> push IntType
 check (IF _ l) = do
@@ -219,6 +221,10 @@ check (INVOKE _ _ (MethodType t ts)) = do
     forM_ (reverse ts) pop
     push t
 check (CONVERT t s) = pop t >> push s
+check (NEWARRAY t) = pop IntType >> push (ArrayType t)
+check (MULTINEWARRAY t n) = do
+    forM_ [1..n] (\_ -> pop IntType)
+    push t
 
 checkMethod :: [Code] -> JasminChecker ()
 checkMethod is = forM_ is check
@@ -228,7 +234,7 @@ data Method = Method Id Type [Code]
 outputMethod :: (String -> IO ()) -> Method -> IO ()
 outputMethod output (Method m t is) = do
     state <- State.execStateT (checkMethod is) (initialJasminCheckerState t)
-    output $ ".method public static " ++ show m ++ jasmin t
+    output $ ".method public static " ++ m ++ jasmin t
     output $ "    .limit locals " ++ show (frame state)
     output $ "    .limit stack " ++ show (stack state)
     forM_ is (output . jasmin)
@@ -258,14 +264,16 @@ instance Jasmin Code where
     jasmin NOP            = "    nop"
     jasmin (POP t)        = "    pop" ++ typeDouble t
     jasmin (DUP t)        = "    dup" ++ typeDouble t
-    jasmin (DUP_X2 t)     = "    dup" ++ typeDouble t ++ "_x2"
+    jasmin (DUP_X2 t s r) = "    dup" ++ typeDouble r ++ "_x2"
     jasmin (RETURN t)     = "    " ++ typePrefix t ++ "return"
     jasmin (IF op l)      = "    if" ++ jasmin op ++ " " ++ show l
     jasmin (IFCMP t op l) = "    if_" ++ typePrefix t ++ "cmp" ++ jasmin op ++ " " ++ show l
     jasmin (UNARY t op)   = "    " ++ typePrefix t ++ jasmin op
     jasmin (BINARY t op)  = "    " ++ typePrefix t ++ jasmin op
-    jasmin (INVOKE c m t) = "    invokestatic " ++ c ++ "/" ++ show m ++ jasmin t
+    jasmin (INVOKE c m t) = "    invokestatic " ++ c ++ "/" ++ m ++ jasmin t
     jasmin (CONVERT t s)  = "    " ++ conversion t s
+    jasmin (NEWARRAY t)   = "    newarray " ++ jasmin t
+    jasmin (MULTINEWARRAY t n) = "    multianewarray " ++ jasmin t ++ " " ++ show n
 
 conversion :: Type -> Type -> String
 conversion t StringType = "invokestatic stringOf(" ++ jasmin t ++ ")Ljava/lang/String;"

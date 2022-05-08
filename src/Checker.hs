@@ -110,6 +110,13 @@ checkStmt rt (Ignore expr) = do
   expr' <- checkExpr expr
   return $ Typed.Ignore expr'
 
+checkInit :: Pos -> Type -> InitExpression -> Checker Typed.InitExpression
+checkInit pos t (SimpleInit expr) = do
+  expr' <- checkExpr expr
+  return $ Typed.SimpleInit (widen pos t expr')
+checkInit pos (ArrayType t) (ArrayInit inits) = Typed.ArrayInit <$> mapM (checkInit pos t) inits
+checkInit pos t (ArrayInit _) = error "using array initializer for non-array type"
+
 checkExpr :: Expression -> Checker Typed.Expression
 checkExpr (Literal lit) = return $ Typed.Literal lit
 checkExpr (Call x exprs) = do
@@ -118,9 +125,10 @@ checkExpr (Call x exprs) = do
   unless (length ts == length exprs) $ throw $ ErrorWrongNumberOfArguments x (length ts) (length exprs)
   exprs' <- mapM checkExpr exprs
   return $ Typed.Call rt cls (locatedData x) (map (uncurry (widen (locatedPos x))) (zip ts exprs'))
-checkExpr (New t expr) = do
-  expr' <- checkExpr expr
-  return $ Typed.New t (widen Somewhere IntType expr')
+checkExpr (New pos t exprs) = do
+  exprs' <- mapM checkExpr exprs
+  return $ Typed.New t (map (widen pos IntType) exprs')
+checkExpr (Array pos t init) = Typed.Array t <$> checkInit pos t init
 checkExpr (Ref ref) = Typed.Ref <$> checkRef ref
 checkExpr (Unary pos op expr) = do
   expr' <- checkExpr expr

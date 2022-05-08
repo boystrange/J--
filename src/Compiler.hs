@@ -135,14 +135,26 @@ compileProp tt ff (FromExpression expr) = do
     emit $ Jasmin.IF JEQ ff
     emit $ Jasmin.GOTO tt
 
+compileInit :: Type -> InitExpression -> Compiler ()
+compileInit t (SimpleInit expr) = compileExpr expr
+compileInit (ArrayType t) (ArrayInit inits) = do
+    emit $ Jasmin.LDC (Int (length inits))
+    emit $ Jasmin.NEWARRAY t
+    forM_ (zip [0..] inits) (\(i, init) -> do emit $ Jasmin.DUP (ArrayType t)
+                                              emit $ Jasmin.LDC (Int i)
+                                              compileInit t init
+                                              emit $ Jasmin.ASTORE t)
+
 compileExpr :: Expression -> Compiler ()
 compileExpr (Literal lit) = emit $ Jasmin.LDC lit
 compileExpr (Call t cls x exprs) = do
     forM_ exprs compileExpr
     emit $ Jasmin.INVOKE cls x (MethodType t (map typeof exprs))
-compileExpr (New t expr) = do
-    compileExpr expr
-    undefined
+compileExpr (New t exprs) = do
+    forM_ exprs compileExpr
+    let s = foldr (const ArrayType) t exprs
+    emit $ Jasmin.MULTINEWARRAY s (length exprs)
+compileExpr (Array t init) = compileInit t init
 compileExpr (Assign (IdRef t i _) expr) = do
     compileExpr expr
     emit $ Jasmin.DUP t
@@ -151,7 +163,7 @@ compileExpr (Assign (ArrayRef t r expr1) expr2) = do
     compileRef r
     compileExpr expr1
     compileExpr expr2
-    emit $ Jasmin.DUP_X2 t
+    emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
     emit $ Jasmin.ASTORE t
 compileExpr (Ref r) = compileRef r
 compileExpr (Unary t op expr) = do

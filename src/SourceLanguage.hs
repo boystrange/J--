@@ -27,7 +27,8 @@ data Reference
 data Expression
   = Literal Literal
   | Call (Located Id) [Expression]
-  | New Type Expression
+  | New Pos Type [Expression]
+  | Array Pos Type InitExpression
   | Assign Pos Reference Expression
   | Ref Reference
   | Unary Pos SignOp Expression
@@ -39,6 +40,10 @@ data Expression
   | And Expression Expression
   | Or Expression Expression
   | Not Expression
+
+data InitExpression
+  = SimpleInit Expression
+  | ArrayInit [InitExpression]
 
 data Statement
   = Skip

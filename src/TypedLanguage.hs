@@ -28,7 +28,8 @@ data Expression
   = Literal Literal
   | Ref Reference
   | Call Type String Id [Expression]
-  | New Type Expression
+  | New Type [Expression]
+  | Array Type InitExpression
   | Assign Reference Expression
   | Unary Type SignOp Expression
   | Binary Type BinOp Expression Expression
@@ -36,6 +37,10 @@ data Expression
   | Step Type StepOp SignOp Reference
   | Convert Type Expression
   | StringOf Type Expression
+
+data InitExpression
+  = SimpleInit Expression
+  | ArrayInit [InitExpression]
 
 data Proposition
   = TrueProp
@@ -65,7 +70,8 @@ instance Typed Expression where
   typeof (Literal lit) = typeof lit
   typeof (Ref ref) = typeof ref
   typeof (Call rt _ _ _) = rt
-  typeof (New t _) = ArrayType t
+  typeof (New t exprs) = foldr (const ArrayType) t exprs
+  typeof (Array t _) = t
   typeof (Assign ref _) = typeof ref
   typeof (Unary t _ _) = t
   typeof (Binary t _ _ _) = t
