@@ -46,6 +46,7 @@ initialJasminCheckerState (MethodType _ ts)
 type JasminChecker = StateT JasminCheckerState IO
 
 pop :: Type -> JasminChecker ()
+pop VoidType = return ()
 pop t = do
     state <- State.get
     case stype state of
@@ -55,6 +56,7 @@ pop t = do
         Just (s : _) -> liftIO $ Render.printWarning $ "popping " ++ show t ++ " from stack having " ++ show s ++ " on top"
 
 push :: Type -> JasminChecker ()
+push VoidType = return ()
 push t = do
     state <- State.get
     case stype state of
@@ -205,8 +207,7 @@ check NOP = return ()
 check (POP t) = pop t
 check (DUP t) = pop t >> push t >> push t
 check (DUP_X2 t) = undefined
-check (RETURN VoidType) = setStackType [] >> undefineStack
-check (RETURN t) = setStackType [t] >> undefineStack
+check (RETURN t) = pop t >> setStackType [] >> undefineStack
 check (CMP t) = pop t >> pop t >> push IntType
 check (IF _ l) = do
     pop IntType
