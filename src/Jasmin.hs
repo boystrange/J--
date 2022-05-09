@@ -285,6 +285,7 @@ instance Jasmin Code where
 
 conversion :: Type -> Type -> String
 conversion t StringType = "invokestatic stringOf(" ++ jasmin t ++ ")Ljava/lang/String;"
+conversion BooleanType IntType = "nop"
 conversion IntType FloatType = "i2f"
 conversion IntType DoubleType = "i2d"
 conversion IntType CharType = "i2c"

@@ -34,6 +34,7 @@ peephole = aux
         aux (IFCMP t rel l1 : GOTO l2 : LABEL l3 : is) | l1 == l3 = aux (IFCMP t (notRel rel) l2 : LABEL l3 : is)
         aux (IF rel l1 : GOTO l2 : LABEL l3 : is) | l1 == l3 = aux (IF (notRel rel) l2 : LABEL l3 : is)
         aux (LDC (Int 0) : IFCMP IntType rel l1 : is) = aux (IF rel l1 : is)
+        aux (NOP : is) = aux is
         aux (i : is) = i : aux is
 
 removeUselessLabels :: [Code] -> [Code]

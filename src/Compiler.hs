@@ -149,6 +149,7 @@ compileProp tt ff (Or prop1 prop2) = do
 compileProp tt ff (Not prop) = compileProp ff tt prop
 compileProp tt ff (FromExpression expr) = do
     compileExpr expr
+    emit $ Jasmin.CONVERT BooleanType IntType
     emit $ Jasmin.IF JEQ ff
     emit $ Jasmin.GOTO tt
 
