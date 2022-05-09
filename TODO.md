@@ -11,7 +11,7 @@
 * change `Positioned` so that it provides start and end positions?
 * Method overloading?
 * Optimize increment and decrement operations
-* Optimize array creation using `multianewarray`
+* Optimize array creation using `multianewarray`, fix `newarray` instruction
 
 ## Doubtful changes
 

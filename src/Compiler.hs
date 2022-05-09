@@ -167,7 +167,7 @@ compileExpr :: Expression -> Compiler ()
 compileExpr (Literal lit) = emit $ Jasmin.LDC lit
 compileExpr (Call t cls x exprs) = do
     forM_ exprs compileExpr
-    emit $ Jasmin.INVOKE cls x (MethodType t (map typeof exprs))
+    emit $ Jasmin.INVOKE cls x t (map typeof exprs)
 compileExpr (New t exprs) = do
     forM_ exprs compileExpr
     let s = foldr (const ArrayType) t exprs

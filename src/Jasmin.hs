@@ -141,7 +141,7 @@ data Code
     | IFCMP Type RelOp Label
     | UNARY Type SignOp
     | BINARY Type BinOp
-    | INVOKE String Id Type
+    | INVOKE String Id Type [Type]
     | CONVERT Type Type
     | NEWARRAY Type
     | NEWARRAYS Type Int
@@ -221,7 +221,7 @@ check (IF _ l) = pop IntType >> jump l
 check (IFCMP t _ l) = pop t >> pop t >> jump l
 check (UNARY t _) = pop t >> push t
 check (BINARY t _) = pop t >> pop t >> push t
-check (INVOKE _ _ (MethodType t ts)) = do
+check (INVOKE _ _ t ts) = do
     forM_ (reverse ts) pop
     push t
 check (CONVERT t s) = pop t >> push s
@@ -255,32 +255,32 @@ outputClass cls methods = do
     hClose handle
 
 library :: String -> Type -> [Type] -> Code
-library m t ts = INVOKE "StandardLibrary" m (MethodType t ts)
+library = INVOKE "StandardLibrary"
 
 instance Jasmin Code where
-    jasmin (LABEL l)       = show l ++ ":"
-    jasmin (GOTO l)        = "    goto " ++ show l
-    jasmin (LDC lit)       = "    ldc" ++ literalDouble lit ++ " " ++ jasmin lit
-    jasmin (LOAD t i)      = "    " ++ typePrefix t ++ "load " ++ show i
-    jasmin (STORE t i)     = "    " ++ typePrefix t ++ "store " ++ show i
-    jasmin (ALOAD t)       = "    " ++ typePrefix t ++ "aload"
-    jasmin (ASTORE t)      = "    " ++ typePrefix t ++ "astore"
-    jasmin (CMP t)         = "    " ++ typePrefix t ++ "cmpl"
-    jasmin NOP             = "    nop"
-    jasmin (POP t)         = "    pop" ++ typeDouble t
-    jasmin (DUP t)         = "    dup" ++ typeDouble t
-    jasmin (DUP2 t s)      = "    dup2"
-    jasmin (DUP_X2 t s r)  = "    dup" ++ typeDouble r ++ "_x2"
-    jasmin (RETURN t)      = "    " ++ typePrefix t ++ "return"
-    jasmin (IF op l)       = "    if" ++ jasmin op ++ " " ++ show l
-    jasmin (IFCMP t op l)  = "    if_" ++ typePrefix t ++ "cmp" ++ jasmin op ++ " " ++ show l
-    jasmin (UNARY t op)    = "    " ++ typePrefix t ++ jasmin op
-    jasmin (BINARY t op)   = "    " ++ typePrefix t ++ jasmin op
-    jasmin (INVOKE c m t)  = "    invokestatic " ++ c ++ "/" ++ m ++ jasmin t
-    jasmin (CONVERT t s)   = "    " ++ conversion t s
-    jasmin (NEWARRAY t)    = "    newarray " ++ jasmin t
-    jasmin (NEWARRAYS t n) = "    multianewarray " ++ jasmin t ++ " " ++ show n
-    jasmin (ARRAYLENGTH _) = "    arraylength"
+    jasmin (LABEL l)         = show l ++ ":"
+    jasmin (GOTO l)          = "    goto " ++ show l
+    jasmin (LDC lit)         = "    ldc" ++ literalDouble lit ++ " " ++ jasmin lit
+    jasmin (LOAD t i)        = "    " ++ typePrefix t ++ "load " ++ show i
+    jasmin (STORE t i)       = "    " ++ typePrefix t ++ "store " ++ show i
+    jasmin (ALOAD t)         = "    " ++ typePrefix t ++ "aload"
+    jasmin (ASTORE t)        = "    " ++ typePrefix t ++ "astore"
+    jasmin (CMP t)           = "    " ++ typePrefix t ++ "cmpl"
+    jasmin NOP               = "    nop"
+    jasmin (POP t)           = "    pop" ++ typeDouble t
+    jasmin (DUP t)           = "    dup" ++ typeDouble t
+    jasmin (DUP2 t s)        = "    dup2"
+    jasmin (DUP_X2 t s r)    = "    dup" ++ typeDouble r ++ "_x2"
+    jasmin (RETURN t)        = "    " ++ typePrefix t ++ "return"
+    jasmin (IF op l)         = "    if" ++ jasmin op ++ " " ++ show l
+    jasmin (IFCMP t op l)    = "    if_" ++ typePrefix t ++ "cmp" ++ jasmin op ++ " " ++ show l
+    jasmin (UNARY t op)      = "    " ++ typePrefix t ++ jasmin op
+    jasmin (BINARY t op)     = "    " ++ typePrefix t ++ jasmin op
+    jasmin (INVOKE c m t ts) = "    invokestatic " ++ c ++ "/" ++ m ++ jasmin (MethodType t ts)
+    jasmin (CONVERT t s)     = "    " ++ conversion t s
+    jasmin (NEWARRAY t)      = "    newarray " ++ jasmin t -- this is WRONG!
+    jasmin (NEWARRAYS t n)   = "    multianewarray " ++ jasmin t ++ " " ++ show n
+    jasmin (ARRAYLENGTH _)   = "    arraylength"
 
 conversion :: Type -> Type -> String
 conversion t StringType = "invokestatic stringOf(" ++ jasmin t ++ ")Ljava/lang/String;"
