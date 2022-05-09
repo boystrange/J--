@@ -188,7 +188,7 @@ compileExpr (Assign (ArrayRef t r expr1) expr2) = do
 compileExpr (Ref r) = compileRef r
 compileExpr (Unary t op expr) = do
     compileExpr expr
-    emit $ Jasmin.UNARY t op
+    unless (op == POS) $ emit $ Jasmin.UNARY t op
 compileExpr (Binary t op expr1 expr2) = do
     compileExpr expr1
     compileExpr expr2
