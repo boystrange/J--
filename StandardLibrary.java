@@ -76,4 +76,8 @@ public class StandardLibrary {
     public static void check_assertion(boolean b, String msg) {
         if (!b) throw new AssertionError(msg);
     }
+
+    public static double milliseconds() {
+        return System.currentTimeMillis() / 1000.0d;
+    }
 }

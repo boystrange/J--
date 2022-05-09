@@ -252,6 +252,7 @@ checkMethod method@(Method t x args stmt) = do
 library :: [(Id, Type)]
 library =
   [ ("check_assertion",   MethodType VoidType   [BooleanType, StringType])
+  , ("milliseconds",      MethodType DoubleType [])
   , ("print",             MethodType VoidType   [StringType])
   , ("println",           MethodType VoidType   [StringType])
   , ("getInt",            MethodType IntType    [StringType])

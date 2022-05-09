@@ -14,6 +14,12 @@
 
 // Copyright 2022 Luca Padovani
 
+// recursive version, exponential time
+int recursive_fibo(int n) {
+  return n <= 1 ? n : recursive_fibo(n - 1) + recursive_fibo(n - 2);
+}
+
+// iterative version, linear time
 int iterative_fibo(int n) {
   int a = 0, b = 1;
   while (n > 0) {
@@ -25,9 +31,49 @@ int iterative_fibo(int n) {
   return a;
 }
 
-int recursive_fibo(int n) {
-  return n <= 1 ? n : recursive_fibo(n - 1) + recursive_fibo(n - 2);
+// identity matrix 2x2
+int[][] identity() {
+  return new int[][]
+    { { 1, 0 }
+    , { 0, 1 } };
 }
 
-for (int i = 0; i < 40; i++)
-  println(recursive_fibo(i) + " " + iterative_fibo(i));
+// matrix multiplication a*b
+int[][] mul(int[][] a, int[][] b) {
+  return new int[][]
+    { { a[0][0] * b[0][0] + a[0][1] * b[1][0], a[0][0] * b[0][1] + a[0][1] * b[1][1] }
+    , { a[1][0] * b[0][0] + a[1][1] * b[1][0], a[1][0] * b[0][1] + a[1][1] * b[1][1] } };
+}
+
+// matrix exponentiation a^n
+int[][] pow(int[][] a, int n) {
+  if (n == 0) return identity();
+  else {
+    int[][] b = pow(a, n / 2);
+    return n % 2 == 0 ? mul(b, b) : mul(a, mul(b, b));
+  }
+}
+
+// efficient version, logarithmic
+int efficient_fibo(int n) {
+  int[][] a = new int[][]
+    { { 1, 1 }
+    , { 1, 0 } };
+  int[][] b = pow(a, n);
+  return b[0][1];
+}
+
+void test(int k) {
+  assert 1 <= k && k <= 3 : "invalid test";
+  double start = milliseconds();
+  for (int i = 0; i < 40; i++) {
+    int r = k == 1 ? recursive_fibo(i) : (k == 2 ? iterative_fibo(i) : efficient_fibo(i));
+    println("Fibonacci " + i + " = " + r);
+  }
+  double stop = milliseconds();
+  println("elapsed time for version " + k + " is " + (stop - start) + "ms");
+}
+
+test(1);
+test(2);
+test(3);
