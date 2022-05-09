@@ -29,6 +29,12 @@ instance Show Pos where
 data Located a = Located { locatedPos :: Pos
                          , locatedData :: a }
 
+class Positioned a where
+  posof :: a -> Pos
+
+instance Positioned (Located a) where
+  posof = locatedPos
+
 instance Eq a => Eq (Located a) where
   (==) u v = (==) (locatedData u) (locatedData v)
 

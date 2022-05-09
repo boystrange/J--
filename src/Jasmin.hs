@@ -288,6 +288,7 @@ conversion t StringType = "invokestatic stringOf(" ++ jasmin t ++ ")Ljava/lang/S
 conversion IntType FloatType = "i2f"
 conversion IntType DoubleType = "i2d"
 conversion IntType CharType = "i2c"
+conversion CharType IntType = "nop"
 conversion FloatType DoubleType = "f2d"
 conversion FloatType IntType = "f2i"
 conversion DoubleType IntType = "d2i"

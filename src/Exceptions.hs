@@ -43,20 +43,20 @@ data MyException
 
 instance Exception MyException
 
-posof :: MyException -> Pos
-posof (ErrorSyntax pos _) = pos
-posof (ErrorVoidReturn pos _) = pos
-posof (ErrorWrongNumberOfArguments x _ _) = locatedPos x
-posof (ErrorStepOperator pos _ _) = pos
-posof (ErrorUnaryOperator pos _ _) = pos
-posof (ErrorBinaryOperator pos _ _ _) = pos
-posof (ErrorTypeMismatch pos _ _) = pos
-posof (ErrorBinaryRelation pos _ _ _) = pos
-posof (ErrorMethodExpected x _) = locatedPos x
-posof (ErrorArrayExpected pos _) = pos
-posof (ErrorMissingReturn x) = locatedPos x
-posof (ErrorUnknownIdentifier x) = locatedPos x
-posof (ErrorMultipleDeclarations x) = locatedPos x
+instance Positioned MyException where
+  posof (ErrorSyntax pos _) = pos
+  posof (ErrorVoidReturn pos _) = pos
+  posof (ErrorWrongNumberOfArguments x _ _) = locatedPos x
+  posof (ErrorStepOperator pos _ _) = pos
+  posof (ErrorUnaryOperator pos _ _) = pos
+  posof (ErrorBinaryOperator pos _ _ _) = pos
+  posof (ErrorTypeMismatch pos _ _) = pos
+  posof (ErrorBinaryRelation pos _ _ _) = pos
+  posof (ErrorMethodExpected x _) = locatedPos x
+  posof (ErrorArrayExpected pos _) = pos
+  posof (ErrorMissingReturn x) = locatedPos x
+  posof (ErrorUnknownIdentifier x) = locatedPos x
+  posof (ErrorMultipleDeclarations x) = locatedPos x
 
 instance Show MyException where
   show (ErrorSyntax _ tok) = "syntax error at token '" ++ tok ++ "'"

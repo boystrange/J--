@@ -24,6 +24,10 @@ data Reference
   = IdRef (Located Id)
   | ArrayRef Reference Expression
 
+instance Positioned Reference where
+  posof (IdRef x) = posof x
+  posof (ArrayRef ref _) = posof ref
+
 data Expression
   = Literal Literal
   | Call (Located Id) [Expression]
@@ -41,6 +45,24 @@ data Expression
   | And Expression Expression
   | Or Expression Expression
   | Not Expression
+
+instance Positioned Expression where
+  posof (Literal _) = Somewhere
+  posof (Call x _) = posof x
+  posof (New pos _ _) = pos
+  posof (Array pos _ _) = pos
+  posof (Length pos _) = pos
+  posof (Assign pos _ _) = pos
+  posof (Ref ref) = posof ref
+  posof (Unary pos _ _) = pos
+  posof (Binary pos _ _ _) = pos
+  posof (Ternary pos _ _ _) = pos
+  posof (Step pos _ _ _) = pos
+  posof (Cast pos _ _) = pos
+  posof (Rel pos _ _ _) = pos
+  posof (And expr _) = posof expr
+  posof (Or expr _) = posof expr
+  posof (Not expr) = posof expr
 
 data InitExpression
   = SimpleInit Expression

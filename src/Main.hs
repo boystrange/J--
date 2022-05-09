@@ -17,6 +17,7 @@
 -- |This module parses the command-line arguments and invokes the compiler.
 module Main (main) where
 
+import Atoms
 import Render
 import Exceptions
 import qualified Parser

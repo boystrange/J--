@@ -72,7 +72,16 @@ void check_short_circuit() {
     assert 1 < 2 || 1 / 0 == 0    : "||";
     assert !(2 < 1 && 1 / 0 == 0) : "&&";
     assert !(!(1 < 2) && 1 / 0 == 0) : "!&&";
-    // assert 1 < 2 || 1 / 0    : "||"; // IMPROVE ERROR MESSAGE
+}
+
+void check_characters() {
+    char c = (char) ('a' + 1);
+    println("after 'a' we have '" + c + "' and then '" + (char) (c + 1) + "'");
+    println("upper case of 'a' is '" + to_upper('a') + "'");
+}
+
+char to_upper(char c) {
+    return c >= 'a' && c <= 'z' ? (char) (c - 'a' + 'A') : c;
 }
 
 check_relations();
@@ -81,3 +90,4 @@ check_step_operators();
 check_arrays();
 check_bidimensional_arrays();
 check_short_circuit();
+check_characters();

@@ -216,7 +216,7 @@ checkProp (Or prop1 prop2) = do
   prop2' <- checkProp prop2
   return $ Typed.Or prop1' prop2'
 checkProp (Not prop) = Typed.Not <$> checkProp prop
-checkProp expr = Typed.FromExpression <$> widen Somewhere BooleanType <$> checkExpr expr
+checkProp expr = Typed.FromExpression <$> widen (posof expr) BooleanType <$> checkExpr expr
 
 getMethodType :: Located Id -> Checker (Type, [Type])
 getMethodType x = do
