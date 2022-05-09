@@ -30,4 +30,8 @@ public class StandardLibrary {
     public static String String_concat(String x, String y) {
         return x + y;
     }
+
+    public static void check_assertion(boolean b, String msg) {
+        if (!b) throw new AssertionError(msg);
+    }
 }

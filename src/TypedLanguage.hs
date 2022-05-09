@@ -30,6 +30,7 @@ data Expression
   | Call Type String Id [Expression]
   | New Type [Expression]
   | Array Type InitExpression
+  | Length Type Expression
   | Assign Reference Expression
   | Unary Type SignOp Expression
   | Binary Type BinOp Expression Expression
@@ -72,6 +73,7 @@ instance Typed Expression where
   typeof (Call rt _ _ _) = rt
   typeof (New t exprs) = foldr (const ArrayType) t exprs
   typeof (Array t _) = t
+  typeof (Length _ _) = IntType
   typeof (Assign ref _) = typeof ref
   typeof (Unary t _ _) = t
   typeof (Binary t _ _ _) = t

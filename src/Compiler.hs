@@ -59,7 +59,6 @@ compileMethod (Method t x stmt) = do
     Jasmin.Method x t <$> getCode
 
 compileStep :: Type -> StepOp -> SignOp -> Reference -> Compiler ()
-compileStep _ POST sign (ArrayRef t ref expr) = undefined
 compileStep _ POST sign (IdRef t i _) = do
     emit $ Jasmin.LOAD t i
     emit $ Jasmin.DUP t
@@ -72,6 +71,24 @@ compileStep _ PRE sign (IdRef t i _) = do
     emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
     emit $ Jasmin.DUP t
     emit $ Jasmin.STORE t i
+compileStep _ POST sign (ArrayRef t ref expr) = do
+    compileRef ref
+    compileExpr expr
+    emit $ Jasmin.DUP2 (ArrayType t) IntType
+    emit $ Jasmin.ALOAD t
+    emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
+    emit $ Jasmin.LDC (one t)
+    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
+    emit $ Jasmin.ASTORE t
+compileStep _ PRE sign (ArrayRef t ref expr) = do
+    compileRef ref
+    compileExpr expr
+    emit $ Jasmin.DUP2 (ArrayType t) IntType
+    emit $ Jasmin.ALOAD t
+    emit $ Jasmin.LDC (one t)
+    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
+    emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
+    emit $ Jasmin.ASTORE t
 
 compileStmt :: Label -> Statement -> Compiler ()
 compileStmt next Skip = emit $ Jasmin.GOTO next
@@ -139,7 +156,7 @@ compileInit :: Type -> InitExpression -> Compiler ()
 compileInit t (SimpleInit expr) = compileExpr expr
 compileInit (ArrayType t) (ArrayInit inits) = do
     emit $ Jasmin.LDC (Int (length inits))
-    emit $ Jasmin.NEWARRAY t
+    emit $ Jasmin.NEWARRAYS (ArrayType t) 1
     forM_ (zip [0..] inits) (\(i, init) -> do emit $ Jasmin.DUP (ArrayType t)
                                               emit $ Jasmin.LDC (Int i)
                                               compileInit t init
@@ -153,8 +170,11 @@ compileExpr (Call t cls x exprs) = do
 compileExpr (New t exprs) = do
     forM_ exprs compileExpr
     let s = foldr (const ArrayType) t exprs
-    emit $ Jasmin.MULTINEWARRAY s (length exprs)
+    emit $ Jasmin.NEWARRAYS s (length exprs)
 compileExpr (Array t init) = compileInit t init
+compileExpr (Length t expr) = do
+    compileExpr expr
+    emit $ Jasmin.ARRAYLENGTH t
 compileExpr (Assign (IdRef t i _) expr) = do
     compileExpr expr
     emit $ Jasmin.DUP t

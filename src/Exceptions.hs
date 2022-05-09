@@ -36,7 +36,7 @@ data MyException
   | ErrorBinaryOperator Pos BinOp Type Type
   | ErrorBinaryRelation Pos RelOp Type Type
   | ErrorMethodExpected (Located Id) Type
-  | ErrorArrayExpected Type
+  | ErrorArrayExpected Pos Type
   | ErrorMissingReturn (Located Id)
   | ErrorUnknownIdentifier (Located Id)
   | ErrorMultipleDeclarations (Located Id)
@@ -53,7 +53,7 @@ posof (ErrorBinaryOperator pos _ _ _) = pos
 posof (ErrorTypeMismatch pos _ _) = pos
 posof (ErrorBinaryRelation pos _ _ _) = pos
 posof (ErrorMethodExpected x _) = locatedPos x
-posof (ErrorArrayExpected _) = Somewhere
+posof (ErrorArrayExpected pos _) = pos
 posof (ErrorMissingReturn x) = locatedPos x
 posof (ErrorUnknownIdentifier x) = locatedPos x
 posof (ErrorMultipleDeclarations x) = locatedPos x
@@ -65,7 +65,7 @@ instance Show MyException where
   show (ErrorWrongNumberOfArguments x en an) = "wrong number of arguments when calling " ++ show x ++", expected " ++ show en ++ ", actual " ++ show an
   show (ErrorMissingReturn x) = "missing return statement for method " ++ show x
   show (ErrorVoidReturn _ t) = "method should return value of type " ++ show t
-  show (ErrorArrayExpected t) = "array expected, actual type " ++ show t
+  show (ErrorArrayExpected _ t) = "array expected, actual type " ++ show t
   show (ErrorMethodExpected x t) = show x ++ " is not a method, its type is " ++ show t
   show (ErrorStepOperator _ op t) = show op ++ " operator cannot be applied to operand of type " ++ show t
   show (ErrorUnaryOperator _ op t) = "unary operator " ++ show op ++ " cannot be applied to operand of type " ++ show t

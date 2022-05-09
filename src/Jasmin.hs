@@ -130,6 +130,7 @@ data Code
     | NOP
     | POP Type
     | DUP Type
+    | DUP2 Type Type
     | DUP_X2 Type Type Type
     | RETURN Type
     | CMP Type
@@ -140,7 +141,8 @@ data Code
     | INVOKE String Id Type
     | CONVERT Type Type
     | NEWARRAY Type
-    | MULTINEWARRAY Type Int
+    | NEWARRAYS Type Int
+    | ARRAYLENGTH Type
     deriving Eq
 
 labels :: Code -> [Label]
@@ -208,6 +210,7 @@ check (ASTORE t) = do
 check NOP = return ()
 check (POP t) = pop t
 check (DUP t) = pop t >> push t >> push t
+check (DUP2 t s) = pop s >> pop t >> push t >> push s >> push t >> push s
 check (DUP_X2 t s r) = pop r >> pop s >> pop t >> push r >> push t >> push s >> push r
 check (RETURN t) = pop t >> setStackType [] >> undefineStack
 check (CMP t) = pop t >> pop t >> push IntType
@@ -222,9 +225,10 @@ check (INVOKE _ _ (MethodType t ts)) = do
     push t
 check (CONVERT t s) = pop t >> push s
 check (NEWARRAY t) = pop IntType >> push (ArrayType t)
-check (MULTINEWARRAY t n) = do
+check (NEWARRAYS t n) = do
     forM_ [1..n] (\_ -> pop IntType)
     push t
+check (ARRAYLENGTH t) = pop (ArrayType t) >> push IntType
 
 checkMethod :: [Code] -> JasminChecker ()
 checkMethod is = forM_ is check
@@ -253,27 +257,29 @@ library :: String -> Type -> [Type] -> Code
 library m t ts = INVOKE "StandardLibrary" m (MethodType t ts)
 
 instance Jasmin Code where
-    jasmin (LABEL l)      = show l ++ ":"
-    jasmin (GOTO l)       = "    goto " ++ show l
-    jasmin (LDC lit)      = "    ldc" ++ literalDouble lit ++ " " ++ jasmin lit
-    jasmin (LOAD t i)     = "    " ++ typePrefix t ++ "load " ++ show i
-    jasmin (STORE t i)    = "    " ++ typePrefix t ++ "store " ++ show i
-    jasmin (ALOAD t)      = "    " ++ typePrefix t ++ "aload"
-    jasmin (ASTORE t)     = "    " ++ typePrefix t ++ "astore"
-    jasmin (CMP t)        = "    " ++ typePrefix t ++ "cmpl"
-    jasmin NOP            = "    nop"
-    jasmin (POP t)        = "    pop" ++ typeDouble t
-    jasmin (DUP t)        = "    dup" ++ typeDouble t
-    jasmin (DUP_X2 t s r) = "    dup" ++ typeDouble r ++ "_x2"
-    jasmin (RETURN t)     = "    " ++ typePrefix t ++ "return"
-    jasmin (IF op l)      = "    if" ++ jasmin op ++ " " ++ show l
-    jasmin (IFCMP t op l) = "    if_" ++ typePrefix t ++ "cmp" ++ jasmin op ++ " " ++ show l
-    jasmin (UNARY t op)   = "    " ++ typePrefix t ++ jasmin op
-    jasmin (BINARY t op)  = "    " ++ typePrefix t ++ jasmin op
-    jasmin (INVOKE c m t) = "    invokestatic " ++ c ++ "/" ++ m ++ jasmin t
-    jasmin (CONVERT t s)  = "    " ++ conversion t s
-    jasmin (NEWARRAY t)   = "    newarray " ++ jasmin t
-    jasmin (MULTINEWARRAY t n) = "    multianewarray " ++ jasmin t ++ " " ++ show n
+    jasmin (LABEL l)       = show l ++ ":"
+    jasmin (GOTO l)        = "    goto " ++ show l
+    jasmin (LDC lit)       = "    ldc" ++ literalDouble lit ++ " " ++ jasmin lit
+    jasmin (LOAD t i)      = "    " ++ typePrefix t ++ "load " ++ show i
+    jasmin (STORE t i)     = "    " ++ typePrefix t ++ "store " ++ show i
+    jasmin (ALOAD t)       = "    " ++ typePrefix t ++ "aload"
+    jasmin (ASTORE t)      = "    " ++ typePrefix t ++ "astore"
+    jasmin (CMP t)         = "    " ++ typePrefix t ++ "cmpl"
+    jasmin NOP             = "    nop"
+    jasmin (POP t)         = "    pop" ++ typeDouble t
+    jasmin (DUP t)         = "    dup" ++ typeDouble t
+    jasmin (DUP2 t s)      = "    dup2"
+    jasmin (DUP_X2 t s r)  = "    dup" ++ typeDouble r ++ "_x2"
+    jasmin (RETURN t)      = "    " ++ typePrefix t ++ "return"
+    jasmin (IF op l)       = "    if" ++ jasmin op ++ " " ++ show l
+    jasmin (IFCMP t op l)  = "    if_" ++ typePrefix t ++ "cmp" ++ jasmin op ++ " " ++ show l
+    jasmin (UNARY t op)    = "    " ++ typePrefix t ++ jasmin op
+    jasmin (BINARY t op)   = "    " ++ typePrefix t ++ jasmin op
+    jasmin (INVOKE c m t)  = "    invokestatic " ++ c ++ "/" ++ m ++ jasmin t
+    jasmin (CONVERT t s)   = "    " ++ conversion t s
+    jasmin (NEWARRAY t)    = "    newarray " ++ jasmin t
+    jasmin (NEWARRAYS t n) = "    multianewarray " ++ jasmin t ++ " " ++ show n
+    jasmin (ARRAYLENGTH _) = "    arraylength"
 
 conversion :: Type -> Type -> String
 conversion t StringType = "invokestatic stringOf(" ++ jasmin t ++ ")Ljava/lang/String;"

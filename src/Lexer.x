@@ -118,7 +118,8 @@ keywords = [("new",       TokenNew),
             ("do",        TokenDo),
             ("for",       TokenFor),
             ("length",    TokenLength),
-            ("return",    TokenReturn)]
+            ("return",    TokenReturn),
+            ("assert",    TokenAssert)]
 
 lookupID :: String -> TokenClass
 lookupID s = case lookup s keywords of
@@ -145,6 +146,7 @@ data TokenClass
   | TokenFor
   | TokenLength
   | TokenReturn
+  | TokenAssert
   | TokenTrue
   | TokenFalse
   | TokenINT String

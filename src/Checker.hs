@@ -129,6 +129,11 @@ checkExpr (New pos t exprs) = do
   exprs' <- mapM checkExpr exprs
   return $ Typed.New t (map (widen pos IntType) exprs')
 checkExpr (Array pos t init) = Typed.Array t <$> checkInit pos t init
+checkExpr (Length pos expr) = do
+  expr' <- checkExpr expr
+  case typeof expr' of
+    ArrayType t -> return $ Typed.Length t expr'
+    t -> throw $ ErrorArrayExpected pos t
 checkExpr (Ref ref) = Typed.Ref <$> checkRef ref
 checkExpr (Unary pos op expr) = do
   expr' <- checkExpr expr
@@ -224,7 +229,7 @@ getArrayType :: Typed.Reference -> Checker Type
 getArrayType ref =
   case typeof ref of
     ArrayType t -> return t
-    t           -> throw $ ErrorArrayExpected t
+    t           -> throw $ ErrorArrayExpected Somewhere t
 
 checkRef :: Reference -> Checker Typed.Reference
 checkRef (IdRef x) = do
@@ -250,7 +255,8 @@ checkMethod method@(Method t x args stmt) = do
 
 library :: [(Id, Type)]
 library =
-  [ ("print",             MethodType VoidType   [StringType])
+  [ ("check_assertion",   MethodType VoidType   [BooleanType, StringType])
+  , ("print",             MethodType VoidType   [StringType])
   , ("println",           MethodType VoidType   [StringType])
   , ("boolean_to_string", MethodType StringType [BooleanType])
   , ("int_to_string",     MethodType StringType [IntType])

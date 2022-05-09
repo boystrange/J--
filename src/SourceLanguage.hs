@@ -29,6 +29,7 @@ data Expression
   | Call (Located Id) [Expression]
   | New Pos Type [Expression]
   | Array Pos Type InitExpression
+  | Length Pos Expression
   | Assign Pos Reference Expression
   | Ref Reference
   | Unary Pos SignOp Expression
