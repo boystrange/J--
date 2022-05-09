@@ -210,7 +210,9 @@ check (ASTORE t) = do
 check NOP = return ()
 check (POP t) = pop t
 check (DUP t) = pop t >> push t >> push t
-check (DUP2 t s) = pop s >> pop t >> push t >> push s >> push t >> push s
+check (DUP2 t s) | sizeOf t == 1 && sizeOf s == 1 =
+    pop s >> pop t >> push t >> push s >> push t >> push s
+check (DUP2 t s) = liftIO $ Render.printWarning $ "dup2 with big types " ++ show t ++ " and " ++ show s
 check (DUP_X2 t s r) = pop r >> pop s >> pop t >> push r >> push t >> push s >> push r
 check (RETURN t) = pop t >> setStackType [] >> undefineStack
 check (CMP t) = pop t >> pop t >> push IntType

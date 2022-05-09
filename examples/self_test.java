@@ -59,6 +59,7 @@ void check_bidimensional_arrays() {
     int[][] a = new int[][] { { 1, 2, 3 }, { 4, 5, 6 } };
     assert a.length == 2 : "array length";
     assert a[0].length == 3 : "array length";
+    assert a[1].length == 3 : "array length";
     assert a[0][0] == 1 : "array read";
     a[0][0] = 0;
     assert a[0][0] == 0 : "array write";
