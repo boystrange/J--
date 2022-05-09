@@ -225,12 +225,6 @@ getMethodType x = do
     MethodType rt ts -> return (rt, ts)
     t -> throw $ ErrorMethodExpected x t
 
-getArrayType :: Typed.Reference -> Checker Type
-getArrayType ref =
-  case typeof ref of
-    ArrayType t -> return t
-    t           -> throw $ ErrorArrayExpected Somewhere t
-
 checkRef :: Reference -> Checker Typed.Reference
 checkRef (IdRef x) = do
   t <- getType x
@@ -239,8 +233,10 @@ checkRef (IdRef x) = do
 checkRef (ArrayRef ref expr) = do
   ref' <- checkRef ref
   expr' <- checkExpr expr
-  t <- getArrayType ref'
-  return $ Typed.ArrayRef t ref' (widen Somewhere IntType expr')
+  let pos = posof ref
+  case typeof ref' of
+    ArrayType t -> return $ Typed.ArrayRef t ref' (widen pos IntType expr')
+    t           -> throw $ ErrorArrayExpected pos t
 
 checkMethod :: Method -> Checker Typed.Method
 checkMethod method@(Method t x args stmt) = do
@@ -258,6 +254,11 @@ library =
   [ ("check_assertion",   MethodType VoidType   [BooleanType, StringType])
   , ("print",             MethodType VoidType   [StringType])
   , ("println",           MethodType VoidType   [StringType])
+  , ("getInt",            MethodType IntType    [StringType])
+  , ("getFloat",          MethodType FloatType  [StringType])
+  , ("getDouble",         MethodType DoubleType [StringType])
+  , ("getChar",           MethodType CharType   [StringType])
+  , ("getString",         MethodType StringType [StringType])
   , ("boolean_to_string", MethodType StringType [BooleanType])
   , ("int_to_string",     MethodType StringType [IntType])
   , ("float_to_string",   MethodType StringType [FloatType])
