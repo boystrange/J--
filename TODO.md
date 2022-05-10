@@ -19,3 +19,4 @@
 ## Doubtful changes
 
 * support `null`?
+* support `switch`?

@@ -48,10 +48,10 @@ int[][] mul(int[][] a, int[][] b) {
 // matrix exponentiation a^n
 int[][] pow(int[][] a, int n) {
   if (n == 0) return identity();
-  else {
+  else if (n % 2 == 0) {
     int[][] b = pow(a, n / 2);
-    return n % 2 == 0 ? mul(b, b) : mul(a, mul(b, b));
-  }
+    return mul(b, b);
+  } else return mul(a, pow(a, n - 1));
 }
 
 // efficient version, logarithmic
