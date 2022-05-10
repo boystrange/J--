@@ -63,17 +63,16 @@ int efficient_fibo(int n) {
   return b[0][1];
 }
 
-void test(int k) {
-  assert 1 <= k && k <= 3 : "invalid test";
-  double start = milliseconds();
-  for (int i = 0; i < 40; i++) {
-    int r = k == 1 ? recursive_fibo(i) : (k == 2 ? iterative_fibo(i) : efficient_fibo(i));
-    println("Fibonacci " + i + " = " + r);
-  }
-  double stop = milliseconds();
-  println("elapsed time for version " + k + " is " + (stop - start) + "ms");
+double round(double n) {
+  return (int) (n * 1000.0d) / 1000.0d;
 }
 
-test(1);
-test(2);
-test(3);
+void test(int n) {
+  double start = milliseconds();
+  for (int i = 0; i < n; i++)
+    println("Fibonacci(" + i + ") = " + recursive_fibo(i) + ", " + iterative_fibo(i) + ", " + efficient_fibo(i));
+  double stop = milliseconds();
+  println("Elapsed time = " + round(stop - start) + "ms");
+}
+
+test(40);

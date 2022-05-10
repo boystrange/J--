@@ -295,7 +295,7 @@ conversion DoubleType IntType = "d2i"
 conversion DoubleType FloatType = "d2f"
 
 literalDouble :: Literal -> String
-literalDouble (Double _) = "_w"
+literalDouble (Double _) = "2_w"
 literalDouble _          = ""
 
 typeDouble :: Type -> String
