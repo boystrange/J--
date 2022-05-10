@@ -56,9 +56,8 @@ int[][] pow(int[][] a, int n) {
 
 // efficient version, logarithmic
 int efficient_fibo(int n) {
-  int[][] a = new int[][]
-    { { 1, 1 }
-    , { 1, 0 } };
+  int[][] a = { { 1, 1 }
+              , { 1, 0 } };
   int[][] b = pow(a, n);
   return b[0][1];
 }
