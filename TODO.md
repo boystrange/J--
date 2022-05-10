@@ -2,11 +2,11 @@
 
 ## Mandatory changes
 
-* Array initialization for local variables without using `new`
-
 ## Important changes
 
-* An array reference can have an expression on the left hand side? `expr [ expr ]`
+* An array reference can have an expression on the left hand side? expr [ expr ]
+  This may require removing references from the syntax with substantial changes
+  in the type checker
 
 ## Optional changes
 
