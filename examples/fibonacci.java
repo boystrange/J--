@@ -40,19 +40,23 @@ int[][] identity(int n) {
   return m;
 }
 
+// number of rows of matrix m
 int rows(int[][] m) {
   return m.length;
 }
 
+// number of columns of matrix m
 int columns(int[][] m) {
   return m[0].length;
 }
 
+// row i of matrix m
 int[] row(int[][] m, int i) {
   assert 0 <= i && i < rows(m) : "invalid row index";
   return m[i];
 }
 
+// column j of matrix m
 int[] column(int[][] m, int j) {
   assert 0 <= j && j < columns(m) : "invalid column index";
   int[] c = new int[rows(m)];
@@ -61,6 +65,7 @@ int[] column(int[][] m, int j) {
   return c;
 }
 
+// scalar product of v and w
 int vector_mul(int[] v, int[] w) {
   assert v.length == w.length : "invalid vector sizes";
   int res = 0;
