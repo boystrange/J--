@@ -62,6 +62,7 @@ one FloatType = Float 1
 one DoubleType = Double 1
 
 data StepOp = PRE | POST
+  deriving Eq
 
 class Typed a where
   typeof :: a -> Type

@@ -18,7 +18,7 @@ module Compiler where
 
 import Control.Monad.State.Lazy (StateT)
 import qualified Control.Monad.State.Lazy as State
-import Control.Monad (forM_, unless)
+import Control.Monad (forM_, when, unless)
 
 import Atoms
 import Type
@@ -132,35 +132,22 @@ compileInit (ArrayType t) (ArrayInit inits) = do
                                               emit $ Jasmin.ASTORE t)
 
 compileStep :: Type -> StepOp -> SignOp -> Reference -> Compiler ()
-compileStep _ POST sign (IdRef t i _) = do
+compileStep _ step sign (IdRef t i _) = do
     emit $ Jasmin.LOAD t i
-    emit $ Jasmin.DUP t
+    when (step == POST) $ emit $ Jasmin.DUP t
     emit $ Jasmin.LDC (one t)
     emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
+    when (step == PRE) $ emit $ Jasmin.DUP t
     emit $ Jasmin.STORE t i
-compileStep _ PRE sign (IdRef t i _) = do
-    emit $ Jasmin.LOAD t i
-    emit $ Jasmin.LDC (one t)
-    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
-    emit $ Jasmin.DUP t
-    emit $ Jasmin.STORE t i
-compileStep _ POST sign (ArrayRef t expr1 expr2) = do
+compileStep _ step sign (ArrayRef t expr1 expr2) = do
     compileExpr expr1
     compileExpr expr2
     emit $ Jasmin.DUP2 (ArrayType t) IntType
     emit $ Jasmin.ALOAD t
-    emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
+    when (step == POST) $ emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
     emit $ Jasmin.LDC (one t)
     emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
-    emit $ Jasmin.ASTORE t
-compileStep _ PRE sign (ArrayRef t expr1 expr2) = do
-    compileExpr expr1
-    compileExpr expr2
-    emit $ Jasmin.DUP2 (ArrayType t) IntType
-    emit $ Jasmin.ALOAD t
-    emit $ Jasmin.LDC (one t)
-    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
-    emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
+    when (step == PRE) $ emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
     emit $ Jasmin.ASTORE t
 
 compileAssign :: Reference -> Expression -> Compiler ()

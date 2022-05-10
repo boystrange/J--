@@ -11,7 +11,6 @@
 * Optimize increment and decrement operations
 * Fix `newarray` instruction output, optimize one-dimensional array creation
   using `multianewarray`
-* in `compileStep` code can be factored
   
 ## Doubtful changes
 
