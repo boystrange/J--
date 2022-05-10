@@ -14,6 +14,14 @@
 
 // Copyright 2022 Luca Padovani
 
+void check_assignement() {
+    int a = 0;
+    int b = 0;
+    a = b = 1;
+    assert a == b : "==";
+    assert a == 1 : "==";
+}
+
 void check_relations() {
     assert 1 < 2          : "<";
     assert 2 <= 2         : "<=";
@@ -41,36 +49,39 @@ void check_step_operators() {
     assert ++a == 3 : "pre increment";
     assert --a == 2 : "pre decrement";
     assert a-- == 2 : "post decrement";
+    int b = a = 0;
+    assert a++ < ++b : "pre and post increment";
+    assert a == b    : "pre and post increment";
 }
 
 void check_arrays() {
     int[] a = { 1, 2, 3 };
     assert a.length == 3 : "array length";
-    assert a[0] == 1 : "array read";
-    assert a[1] == 2 : "array read";
+    assert a[0] == 1     : "array read";
+    assert a[1] == 2     : "array read";
     a[0] = 0;
-    assert a[0] == 0 : "array write";
-    assert a[0]++ == 0 : "array post increment";
-    assert ++a[0] == 2 : "array pre increment";
-    assert --a[0] == 1 : "array pre decrement";
+    assert a[0] == 0     : "array write";
+    assert a[0]++ == 0   : "array post increment";
+    assert ++a[0] == 2   : "array pre increment";
+    assert --a[0] == 1   : "array pre decrement";
 }
 
 void check_bidimensional_arrays() {
     int[][] a = { { 1, 2, 3 }, { 4, 5, 6 } };
-    assert a.length == 2 : "array length";
+    assert a.length == 2    : "array length";
     assert a[0].length == 3 : "array length";
     assert a[1].length == 3 : "array length";
-    assert a[0][0] == 1 : "array read";
+    assert a[0][0] == 1     : "array read";
     a[0][0] = 0;
-    assert a[0][0] == 0 : "array write";
-    assert a[0][0]++ == 0 : "array post increment";
-    assert ++a[0][0] == 2 : "array pre increment";
-    assert --a[0][0] == 1 : "array pre decrement";
+    assert a[0][0] == 0     : "array write";
+    assert a[0][0]++ == 0   : "array post increment";
+    assert ++a[0][0] == 2   : "array pre increment";
+    assert --a[0][0] == 1   : "array pre decrement";
 }
 
 void check_short_circuit() {
-    assert 1 < 2 || 1 / 0 == 0    : "||";
-    assert !(2 < 1 && 1 / 0 == 0) : "&&";
+    assert 1 < 2 || 1 / 0 == 0       : "||";
+    assert !(2 < 1 && 1 / 0 == 0)    : "&&";
     assert !(!(1 < 2) && 1 / 0 == 0) : "!&&";
 }
 
@@ -84,6 +95,7 @@ char to_upper(char c) {
     return c >= 'a' && c <= 'z' ? (char) (c - 'a' + 'A') : c;
 }
 
+check_assignement();
 check_relations();
 check_unary_operators();
 check_step_operators();
