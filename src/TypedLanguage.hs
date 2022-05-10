@@ -22,7 +22,7 @@ import Language
 
 data Reference
   = IdRef Type Slot Id
-  | ArrayRef Type Reference Expression
+  | ArrayRef Type Expression Expression
 
 data Expression
   = Literal Literal

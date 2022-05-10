@@ -95,10 +95,10 @@ import Control.Exception
 %nonassoc '?' ':'
 %left '||' '&&'
 %nonassoc '<' '>' '<=' '>=' '==' '!='
-%left '+' '-'
+%left '+' '-' '++' '--'
 %left '*' '/' '%'
 %nonassoc '!' UNARY
-%left '.'
+%left '.' '[' ']'
 
 %%
 
@@ -180,10 +180,6 @@ Init
 
 -- REFERENCES
 
-Ref
-  : Id                     { IdRef $1 }
-  | Ref '[' Expression ']' { ArrayRef $1 $3 }
-
 -- EXPRESSIONS
 
 ArrayExpression
@@ -222,22 +218,23 @@ Dimension
 
 Expression
   : Literal                                  { Literal $1 }
+  | Id                                       { IdRef $1 }
   | Id '(' ExpressionList ')'                { Call $1 $3 }
   | 'new' Type Dimensions                    { New (getPos $1) $2 $3 }
   | 'new' Type ArrayExpression               { Array (getPos $1) $2 $3 } 
-  | Ref                                      { Ref $1 }
+  | Expression '[' Expression ']'            { ArrayRef $1 $3 }
   | '(' Expression ')'                       { $2 }
-  | Ref '=' Expression                       { Assign (getPos $2) $1 $3 }
+  | Expression '=' Expression                { Assign (getPos $2) $1 $3 }
   | Expression '+' Expression                { Binary (getPos $2) ADD $1 $3 }
   | Expression '-' Expression                { Binary (getPos $2) SUB $1 $3 }
   | Expression '*' Expression                { Binary (getPos $2) MUL $1 $3 }
   | Expression '/' Expression                { Binary (getPos $2) DIV $1 $3 }
   | Expression '%' Expression                { Binary (getPos $2) MOD $1 $3 }
   | '(' Type ')' Expression %prec UNARY      { Cast (getPos $1) $2 $4 }
-  | Ref '++'                                 { Step (getPos $2) POST POS $1 }
-  | Ref '--'                                 { Step (getPos $2) POST NEG $1 }
-  | '++' Ref                                 { Step (getPos $1) PRE POS $2 }
-  | '--' Ref                                 { Step (getPos $1) PRE NEG $2 }
+  | Expression '++'                          { Step (getPos $2) POST POS $1 }
+  | Expression '--'                          { Step (getPos $2) POST NEG $1 }
+  | '++' Expression                          { Step (getPos $1) PRE POS $2 }
+  | '--' Expression                          { Step (getPos $1) PRE NEG $2 }
   | '-' Expression %prec UNARY               { Unary (getPos $1) NEG $2 }
   | '+' Expression %prec UNARY               { Unary (getPos $1) POS $2 }
   | Expression '<' Expression                { Rel (getPos $2) JLT $1 $3 }

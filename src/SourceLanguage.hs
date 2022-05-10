@@ -20,26 +20,19 @@ import Atoms
 import Type
 import Language
 
-data Reference
-  = IdRef (Located Id)
-  | ArrayRef Reference Expression
-
-instance Positioned Reference where
-  posof (IdRef x) = posof x
-  posof (ArrayRef ref _) = posof ref
-
 data Expression
   = Literal Literal
+  | IdRef (Located Id)
+  | ArrayRef Expression Expression
   | Call (Located Id) [Expression]
   | New Pos Type [Expression]
   | Array Pos Type InitExpression
   | Length Pos Expression
-  | Assign Pos Reference Expression
-  | Ref Reference
+  | Assign Pos Expression Expression
   | Unary Pos SignOp Expression
   | Binary Pos BinOp Expression Expression
   | Ternary Pos Expression Expression Expression
-  | Step Pos StepOp SignOp Reference
+  | Step Pos StepOp SignOp Expression
   | Cast Pos Type Expression
   | Rel Pos RelOp Expression Expression
   | And Expression Expression
@@ -51,9 +44,10 @@ instance Positioned Expression where
   posof (Call x _) = posof x
   posof (New pos _ _) = pos
   posof (Array pos _ _) = pos
+  posof (ArrayRef expr _) = posof expr
   posof (Length pos _) = pos
   posof (Assign pos _ _) = pos
-  posof (Ref ref) = posof ref
+  posof (IdRef x) = posof x
   posof (Unary pos _ _) = pos
   posof (Binary pos _ _ _) = pos
   posof (Ternary pos _ _ _) = pos

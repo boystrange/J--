@@ -117,8 +117,24 @@ checkInit pos t (SimpleInit expr) = do
 checkInit _ (ArrayType t) (ArrayInit pos exprs) = Typed.ArrayInit <$> mapM (checkInit pos t) exprs
 checkInit _ t (ArrayInit pos _) = throw $ ErrorArrayInitializer pos t
 
+checkRef :: Expression -> Checker Typed.Reference
+checkRef (IdRef x) = do
+  t <- getType x
+  n <- getSlot x
+  return $ Typed.IdRef t n (locatedData x)
+checkRef (ArrayRef expr1 expr2) = do
+  expr1' <- checkExpr expr1
+  expr2' <- checkExpr expr2
+  let pos = posof expr2
+  case typeof expr1' of
+    ArrayType t -> return $ Typed.ArrayRef t expr1' (widen pos IntType expr2')
+    t           -> throw $ ErrorArrayExpected pos t
+checkRef _ = error "not a reference"
+
 checkExpr :: Expression -> Checker Typed.Expression
 checkExpr (Literal lit) = return $ Typed.Literal lit
+checkExpr ref@(IdRef _) = Typed.Ref <$> checkRef ref
+checkExpr ref@(ArrayRef _ _) = Typed.Ref <$> checkRef ref
 checkExpr (Call x exprs) = do
   (rt, ts) <- getMethodType x
   cls <- getClass x
@@ -134,7 +150,6 @@ checkExpr (Length pos expr) = do
   case typeof expr' of
     ArrayType t -> return $ Typed.Length t expr'
     t -> throw $ ErrorArrayExpected pos t
-checkExpr (Ref ref) = Typed.Ref <$> checkRef ref
 checkExpr (Unary pos op expr) = do
   expr' <- checkExpr expr
   let t = typeof expr'
@@ -158,15 +173,15 @@ checkExpr (Ternary pos prop expr1 expr2) = do
   case merge t1 t2 of
     Just t -> return $ Typed.Ternary t prop' (widen pos t expr1') (widen pos t expr2')
     Nothing -> throw $ ErrorTypeMismatch pos t1 t2
-checkExpr (Assign pos ref expr) = do
-  ref' <- checkRef ref
-  expr' <- checkExpr expr
-  return $ Typed.Assign ref' (widen pos (typeof ref') expr')
-checkExpr (Step pos step sign ref) = do
-  ref' <- checkRef ref
-  let t = typeof ref'
+checkExpr (Assign pos expr1 expr2) = do
+  ref <- checkRef expr1
+  expr2' <- checkExpr expr2
+  return $ Typed.Assign ref (widen pos (typeof ref) expr2')
+checkExpr (Step pos step sign expr) = do
+  ref <- checkRef expr
+  let t = typeof ref
   unless (isNumeric t) $ throw $ ErrorStepOperator pos step t
-  return $ Typed.Step t step sign ref'
+  return $ Typed.Step t step sign ref
 checkExpr (Cast pos t expr) = do
   expr' <- checkExpr expr
   return $ cast pos t expr'
@@ -224,19 +239,6 @@ getMethodType x = do
   case t of
     MethodType rt ts -> return (rt, ts)
     t -> throw $ ErrorMethodExpected x t
-
-checkRef :: Reference -> Checker Typed.Reference
-checkRef (IdRef x) = do
-  t <- getType x
-  n <- getSlot x
-  return $ Typed.IdRef t n (locatedData x)
-checkRef (ArrayRef ref expr) = do
-  ref' <- checkRef ref
-  expr' <- checkExpr expr
-  let pos = posof ref
-  case typeof ref' of
-    ArrayType t -> return $ Typed.ArrayRef t ref' (widen pos IntType expr')
-    t           -> throw $ ErrorArrayExpected pos t
 
 checkMethod :: Method -> Checker Typed.Method
 checkMethod method@(Method t x args stmt) = do

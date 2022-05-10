@@ -58,38 +58,6 @@ compileMethod (Method t x stmt) = do
     compileStmt next stmt
     Jasmin.Method x t <$> getCode
 
-compileStep :: Type -> StepOp -> SignOp -> Reference -> Compiler ()
-compileStep _ POST sign (IdRef t i _) = do
-    emit $ Jasmin.LOAD t i
-    emit $ Jasmin.DUP t
-    emit $ Jasmin.LDC (one t)
-    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
-    emit $ Jasmin.STORE t i
-compileStep _ PRE sign (IdRef t i _) = do
-    emit $ Jasmin.LOAD t i
-    emit $ Jasmin.LDC (one t)
-    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
-    emit $ Jasmin.DUP t
-    emit $ Jasmin.STORE t i
-compileStep _ POST sign (ArrayRef t ref expr) = do
-    compileRef ref
-    compileExpr expr
-    emit $ Jasmin.DUP2 (ArrayType t) IntType
-    emit $ Jasmin.ALOAD t
-    emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
-    emit $ Jasmin.LDC (one t)
-    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
-    emit $ Jasmin.ASTORE t
-compileStep _ PRE sign (ArrayRef t ref expr) = do
-    compileRef ref
-    compileExpr expr
-    emit $ Jasmin.DUP2 (ArrayType t) IntType
-    emit $ Jasmin.ALOAD t
-    emit $ Jasmin.LDC (one t)
-    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
-    emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
-    emit $ Jasmin.ASTORE t
-
 compileStmt :: Label -> Statement -> Compiler ()
 compileStmt next Skip = emit $ Jasmin.GOTO next
 compileStmt next (If prop stmt1 stmt2) = do
@@ -163,6 +131,50 @@ compileInit (ArrayType t) (ArrayInit inits) = do
                                               compileInit t init
                                               emit $ Jasmin.ASTORE t)
 
+compileStep :: Type -> StepOp -> SignOp -> Reference -> Compiler ()
+compileStep _ POST sign (IdRef t i _) = do
+    emit $ Jasmin.LOAD t i
+    emit $ Jasmin.DUP t
+    emit $ Jasmin.LDC (one t)
+    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
+    emit $ Jasmin.STORE t i
+compileStep _ PRE sign (IdRef t i _) = do
+    emit $ Jasmin.LOAD t i
+    emit $ Jasmin.LDC (one t)
+    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
+    emit $ Jasmin.DUP t
+    emit $ Jasmin.STORE t i
+compileStep _ POST sign (ArrayRef t expr1 expr2) = do
+    compileExpr expr1
+    compileExpr expr2
+    emit $ Jasmin.DUP2 (ArrayType t) IntType
+    emit $ Jasmin.ALOAD t
+    emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
+    emit $ Jasmin.LDC (one t)
+    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
+    emit $ Jasmin.ASTORE t
+compileStep _ PRE sign (ArrayRef t expr1 expr2) = do
+    compileExpr expr1
+    compileExpr expr2
+    emit $ Jasmin.DUP2 (ArrayType t) IntType
+    emit $ Jasmin.ALOAD t
+    emit $ Jasmin.LDC (one t)
+    emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
+    emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
+    emit $ Jasmin.ASTORE t
+
+compileAssign :: Reference -> Expression -> Compiler ()
+compileAssign (IdRef t i _) expr = do
+    compileExpr expr
+    emit $ Jasmin.DUP t
+    emit $ Jasmin.STORE t i
+compileAssign (ArrayRef t expr1 expr2) expr3 = do
+    compileExpr expr1
+    compileExpr expr2
+    compileExpr expr3
+    emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
+    emit $ Jasmin.ASTORE t
+
 compileExpr :: Expression -> Compiler ()
 compileExpr (Literal lit) = emit $ Jasmin.LDC lit
 compileExpr (Call t cls x exprs) = do
@@ -176,17 +188,8 @@ compileExpr (Array t init) = compileInit t init
 compileExpr (Length t expr) = do
     compileExpr expr
     emit $ Jasmin.ARRAYLENGTH t
-compileExpr (Assign (IdRef t i _) expr) = do
-    compileExpr expr
-    emit $ Jasmin.DUP t
-    emit $ Jasmin.STORE t i
-compileExpr (Assign (ArrayRef t r expr1) expr2) = do
-    compileRef r
-    compileExpr expr1
-    compileExpr expr2
-    emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
-    emit $ Jasmin.ASTORE t
-compileExpr (Ref r) = compileRef r
+compileExpr (Assign ref expr) = compileAssign ref expr
+compileExpr (Ref ref) = compileRef ref
 compileExpr (Unary t op expr) = do
     compileExpr expr
     unless (op == POS) $ emit $ Jasmin.UNARY t op
@@ -217,9 +220,9 @@ compileExpr (StringOf t expr) = do
 
 compileRef :: Reference -> Compiler ()
 compileRef (IdRef t i _) = emit $ Jasmin.LOAD t i
-compileRef (ArrayRef t r expr) = do
-    compileRef r
-    compileExpr expr
+compileRef (ArrayRef t expr1 expr2) = do
+    compileExpr expr1
+    compileExpr expr2
     emit $ Jasmin.ALOAD t
 
 jumpIf :: Type -> RelOp -> Label -> Label -> Compiler ()
