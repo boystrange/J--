@@ -175,8 +175,8 @@ InitNeList
   | Init ',' InitNeList { $1 : $3 }
 
 Init
-  : Id                { ($1, Nothing) }
-  | Id '=' Expression { ($1, Just $3) }
+  : Id                    { ($1, NoInit) }
+  | Id '=' InitExpression { ($1, $3) }
 
 -- REFERENCES
 
@@ -186,16 +186,12 @@ Ref
 
 -- EXPRESSIONS
 
-ArrayExpressionOpt
-  :                 { Nothing }
-  | ArrayExpression { Just $1 }
-
 ArrayExpression
-  : '{' InitExpressionList '}' { $2 }
+  : '{' InitExpressionList '}' { ArrayInit (getPos $1) $2 }
 
 InitExpression
   : Expression      { SimpleInit $1 }
-  | ArrayExpression { ArrayInit $1 }
+  | ArrayExpression { $1 }
 
 InitExpressionList
   :                      { [] }
@@ -228,7 +224,7 @@ Expression
   : Literal                                  { Literal $1 }
   | Id '(' ExpressionList ')'                { Call $1 $3 }
   | 'new' Type Dimensions                    { New (getPos $1) $2 $3 }
-  | 'new' Type ArrayExpression               { Array (getPos $1) $2 (ArrayInit $3) } 
+  | 'new' Type ArrayExpression               { Array (getPos $1) $2 $3 } 
   | Ref                                      { Ref $1 }
   | '(' Expression ')'                       { $2 }
   | Ref '=' Expression                       { Assign (getPos $2) $1 $3 }
@@ -283,11 +279,13 @@ getPos (Token (AlexPn _ line col) _) = At line col
 lexwrap :: (Token -> Alex a) -> Alex a
 lexwrap = (alexMonadScan' >>=)
 
-expandLocals :: Type -> [(Located Id, Maybe Expression)] -> Statement
-expandLocals t = foldl Seq Skip . map aux
+expandLocals :: Type -> [(Located Id, InitExpression)] -> Statement
+expandLocals t = foldl Seq Skip . map (uncurry $ aux t)
   where
-    aux (x, Nothing) = Local t x
-    aux (x, Just expr) = Seq (Local t x) (Ignore $ Assign (locatedPos x) (IdRef x) expr)
+    aux t x NoInit = Local t x
+    aux t x (SimpleInit expr) = Seq (Local t x) (Ignore $ Assign (posof x) (IdRef x) expr)
+    aux t@(ArrayType _) x init@(ArrayInit pos _) = Seq (Local t x) (Ignore $ Assign (posof x) (IdRef x) (Array pos t init))
+    aux t _ (ArrayInit pos _) = throw $ ErrorArrayInitializer pos t
 
 -- expandInit :: Type -> Located Id -> InitExpression -> Statement
 -- expandInit = undefined

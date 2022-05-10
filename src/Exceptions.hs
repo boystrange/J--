@@ -37,6 +37,7 @@ data MyException
   | ErrorBinaryRelation Pos RelOp Type Type
   | ErrorMethodExpected (Located Id) Type
   | ErrorArrayExpected Pos Type
+  | ErrorArrayInitializer Pos Type
   | ErrorMissingReturn (Located Id)
   | ErrorUnknownIdentifier (Located Id)
   | ErrorMultipleDeclarations (Located Id)
@@ -54,6 +55,7 @@ instance Positioned MyException where
   posof (ErrorBinaryRelation pos _ _ _) = pos
   posof (ErrorMethodExpected x _) = locatedPos x
   posof (ErrorArrayExpected pos _) = pos
+  posof (ErrorArrayInitializer pos _) = pos
   posof (ErrorMissingReturn x) = locatedPos x
   posof (ErrorUnknownIdentifier x) = locatedPos x
   posof (ErrorMultipleDeclarations x) = locatedPos x
@@ -66,6 +68,7 @@ instance Show MyException where
   show (ErrorMissingReturn x) = "missing return statement for method " ++ show x
   show (ErrorVoidReturn _ t) = "method should return value of type " ++ show t
   show (ErrorArrayExpected _ t) = "array expected, actual type " ++ show t
+  show (ErrorArrayInitializer _ t) = "using array initializer for type " ++ show t
   show (ErrorMethodExpected x t) = show x ++ " is not a method, its type is " ++ show t
   show (ErrorStepOperator _ op t) = show op ++ " operator cannot be applied to operand of type " ++ show t
   show (ErrorUnaryOperator _ op t) = "unary operator " ++ show op ++ " cannot be applied to operand of type " ++ show t

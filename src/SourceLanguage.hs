@@ -65,8 +65,9 @@ instance Positioned Expression where
   posof (Not expr) = posof expr
 
 data InitExpression
-  = SimpleInit Expression
-  | ArrayInit [InitExpression]
+  = NoInit
+  | SimpleInit Expression
+  | ArrayInit Pos [InitExpression]
 
 data Statement
   = Skip

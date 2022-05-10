@@ -44,7 +44,7 @@ void check_step_operators() {
 }
 
 void check_arrays() {
-    int[] a = new int[] { 1, 2, 3 };
+    int[] a = { 1, 2, 3 };
     assert a.length == 3 : "array length";
     assert a[0] == 1 : "array read";
     assert a[1] == 2 : "array read";
@@ -56,7 +56,7 @@ void check_arrays() {
 }
 
 void check_bidimensional_arrays() {
-    int[][] a = new int[][] { { 1, 2, 3 }, { 4, 5, 6 } };
+    int[][] a = { { 1, 2, 3 }, { 4, 5, 6 } };
     assert a.length == 2 : "array length";
     assert a[0].length == 3 : "array length";
     assert a[1].length == 3 : "array length";

@@ -114,8 +114,8 @@ checkInit :: Pos -> Type -> InitExpression -> Checker Typed.InitExpression
 checkInit pos t (SimpleInit expr) = do
   expr' <- checkExpr expr
   return $ Typed.SimpleInit (widen pos t expr')
-checkInit pos (ArrayType t) (ArrayInit inits) = Typed.ArrayInit <$> mapM (checkInit pos t) inits
-checkInit pos t (ArrayInit _) = error "using array initializer for non-array type"
+checkInit _ (ArrayType t) (ArrayInit pos exprs) = Typed.ArrayInit <$> mapM (checkInit pos t) exprs
+checkInit _ t (ArrayInit pos _) = throw $ ErrorArrayInitializer pos t
 
 checkExpr :: Expression -> Checker Typed.Expression
 checkExpr (Literal lit) = return $ Typed.Literal lit
