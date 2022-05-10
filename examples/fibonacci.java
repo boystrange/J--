@@ -31,34 +31,70 @@ int iterative_fibo(int n) {
   return a;
 }
 
-// identity matrix 2x2
-int[][] identity() {
-  return new int[][]
-    { { 1, 0 }
-    , { 0, 1 } };
+// crete identity matrix
+int[][] identity(int n) {
+  assert n > 0 : "invalid matrix size";
+  int[][] m = new int[n][n];
+  for (int i = 0; i < n; i++)
+    m[i][i] = 1;
+  return m;
+}
+
+int rows(int[][] m) {
+  return m.length;
+}
+
+int columns(int[][] m) {
+  return m[0].length;
+}
+
+int[] row(int[][] m, int i) {
+  assert 0 <= i && i < rows(m) : "invalid row index";
+  return m[i];
+}
+
+int[] column(int[][] m, int j) {
+  assert 0 <= j && j < columns(m) : "invalid column index";
+  int[] c = new int[rows(m)];
+  for (int i = 0; i < rows(m); i++)
+    c[i] = m[i][j];
+  return c;
+}
+
+int vector_mul(int[] v, int[] w) {
+  assert v.length == w.length : "invalid vector sizes";
+  int res = 0;
+  for (int i = 0; i < v.length; i++)
+    res = res + v[i] * w[i];
+  return res;
 }
 
 // matrix multiplication a*b
-int[][] mul(int[][] a, int[][] b) {
-  return new int[][]
-    { { a[0][0] * b[0][0] + a[0][1] * b[1][0], a[0][0] * b[0][1] + a[0][1] * b[1][1] }
-    , { a[1][0] * b[0][0] + a[1][1] * b[1][0], a[1][0] * b[0][1] + a[1][1] * b[1][1] } };
+int[][] matrix_mul(int[][] a, int[][] b) {
+  assert columns(a) == rows(b) : "invalid matrix sizes";
+  int[][] m = new int[rows(a)][columns(b)];
+  for (int i = 0; i < rows(a); i++)
+    for (int j = 0; j < columns(b); j++)
+      m[i][j] = vector_mul(row(a, i), column(b, j));
+  return m;
 }
 
 // matrix exponentiation a^n
-int[][] pow(int[][] a, int n) {
-  if (n == 0) return identity();
+int[][] matrix_pow(int[][] a, int n) {
+  assert n >= 0 : "invalid exponent";
+  if (n == 0) return identity(2);
   else if (n % 2 == 0) {
-    int[][] b = pow(a, n / 2);
-    return mul(b, b);
-  } else return mul(a, pow(a, n - 1));
+    int[][] b = matrix_pow(a, n / 2);
+    return matrix_mul(b, b);
+  } else return matrix_mul(a, matrix_pow(a, n - 1));
 }
 
 // efficient version, logarithmic
 int efficient_fibo(int n) {
+  assert n >= 0 : "invalid Fibonacci number";
   int[][] a = { { 1, 1 }
               , { 1, 0 } };
-  int[][] b = pow(a, n);
+  int[][] b = matrix_pow(a, n);
   return b[0][1];
 }
 
@@ -74,4 +110,4 @@ void test(int n) {
   println("Elapsed time = " + round(stop - start) + "ms");
 }
 
-test(40);
+test(45);
