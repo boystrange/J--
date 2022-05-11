@@ -12,7 +12,7 @@ used to teach the first undergraduate programming course.
 |    Program | : | Element*                                               |                       |
 |    Element | : | Method                                                 |                       |
 |            |   | Stmt                                                   |                       |
-|     Method | : | Type `ID` `(` (Type ID (`,` Type ID)*)? `)` Stmt       |                       |
+|     Method | : | Type ID `(` (Type ID (`,` Type ID)*)? `)` Stmt         |                       |
 | SimpleStmt | : |                                                        | empty statement       |
 |            |   | Expr                                                   | expression statement  |
 |            |   | Type Init (`,` Init)*                                  | local variables       |
@@ -24,7 +24,7 @@ used to teach the first undergraduate programming course.
 |            |   | `return` Expr? `;`                                     | return statement      |
 |            |   | `assert` Expr `;`                                      | assertion             |
 |            |   | `{` Stmt* `}`                                          | block                 |
-|       Init | : | ID (`=` Expr)?                                         |                       |
+|       Init | : | ID (`=` InitExpr)?                                     |                       |
 |  ArrayExpr | : | `{` (InitExpr (`,` InitExpr)*)? `}`                    | array expression      |
 |   InitExpr | : | Expr                                                   |                       |
 |            |   | ArrayExpr                                              |                       |
@@ -69,9 +69,8 @@ used to teach the first undergraduate programming course.
 |       NEXT | : | ALPHA \| DIGIT \| `_`                                  |                       |
 |         ID | : | ALPHA NEXT+                                            |                       |
 |        NAT | : | DIGIT+                                                 |                       |
-|        INT | : | MINUS? NAT                                             |                       |
-|      FLOAT | : | MINUS? (NAT `.` NAT? \| NAT? `.` NAT) EXP?             |                       |
+|        INT | : | `-`? NAT                                               |                       |
+|      FLOAT | : | `-`? (NAT `.` NAT? \| NAT? `.` NAT) EXP?               |                       |
 |     DOUBLE | : | FLOAT (`d` \| `D`)                                     |                       |
 |        EXP | : | (`e` \| `E`) SIGN? NAT                                 |                       |
-|      MINUS | : | `-`                                                    |                       |
 |       SIGN | : | `+` \| `-`                                             |                       |
