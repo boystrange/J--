@@ -101,13 +101,13 @@ compileStmt next (Ignore expr) = do
     emit $ Jasmin.GOTO next
 compileStmt next (Assert (At l _) prop) = do
     assertions <- assertions <$> State.get
-    if assertions
-        then do ff <- newLabel
-                compileProp next ff prop
-                emit $ Jasmin.LABEL ff
-                emit $ Jasmin.LDC (Int l)
-                emit $ Jasmin.INVOKE "StandardLibrary" "failed_assertion" VoidType [IntType]
-        else emit $ Jasmin.GOTO next
+    when assertions $ do
+        ff <- newLabel
+        compileProp next ff prop
+        emit $ Jasmin.LABEL ff
+        emit $ Jasmin.LDC (Int l)
+        emit $ Jasmin.INVOKE "StandardLibrary" "failed_assertion" VoidType [IntType]
+    emit $ Jasmin.GOTO next
 
 compileProp :: Label -> Label -> Proposition -> Compiler ()
 compileProp tt ff TrueProp = emit $ Jasmin.GOTO tt
