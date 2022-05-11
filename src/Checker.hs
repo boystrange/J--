@@ -109,6 +109,7 @@ checkStmt rt (Local t x) = do
 checkStmt rt (Ignore expr) = do
   expr' <- checkExpr expr
   return $ Typed.Ignore expr'
+checkStmt rt (Assert pos expr) = Typed.Assert pos <$> checkProp expr
 
 checkInit :: Pos -> Type -> InitExpression -> Checker Typed.InitExpression
 checkInit pos t (SimpleInit expr) = do
@@ -253,8 +254,7 @@ checkMethod method@(Method t x args stmt) = do
 
 library :: [(Id, Type)]
 library =
-  [ ("check_assertion",   MethodType VoidType   [BooleanType, StringType])
-  , ("milliseconds",      MethodType DoubleType [])
+  [ ("milliseconds",      MethodType DoubleType [])
   , ("print",             MethodType VoidType   [StringType])
   , ("println",           MethodType VoidType   [StringType])
   , ("getInt",            MethodType IntType    [StringType])

@@ -65,6 +65,7 @@ data InitExpression
 
 data Statement
   = Skip
+  | Assert Pos Expression
   | If Expression Statement Statement
   | While Expression Statement
   | Do Statement Expression
@@ -90,6 +91,7 @@ methodType m = MethodType (methodReturnType m) (map snd (methodArgs m))
 
 returns :: Statement -> Bool
 returns Skip = False
+returns (Assert _ _) = False
 returns (If _ stmt1 stmt2) = returns stmt1 && returns stmt2
 returns (While _ _) = False
 returns (Do stmt _) = returns stmt

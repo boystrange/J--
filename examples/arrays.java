@@ -20,8 +20,8 @@ boolean sorted(int[] a) {
     return true;
 }
 
-assert sorted(new int[] { })         : "empty is sorted" ;
-assert sorted(new int[] { 1 })       : "singleton is sorted";
-assert sorted(new int[] { 1, 2 })    : "sorted";
-assert sorted(new int[] { 1, 2, 3 }) : "sorted";
-assert !sorted(new int[] { 2, 1 })   : "not sorted";
+assert sorted(new int[] { });
+assert sorted(new int[] { 1 });
+assert sorted(new int[] { 1, 2 });
+assert sorted(new int[] { 1, 2, 3 });
+assert !sorted(new int[] { 2, 1 });

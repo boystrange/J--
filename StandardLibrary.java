@@ -73,8 +73,9 @@ public class StandardLibrary {
         return x + y;
     }
 
-    public static void check_assertion(boolean b, String msg) {
-        if (!b) throw new AssertionError(msg);
+    public static void failed_assertion(int n) {
+        System.err.println("==> assertion failed on line " + n + " <==");
+        System.exit(-1);
     }
 
     public static double milliseconds() {

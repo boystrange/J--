@@ -59,6 +59,7 @@ data Statement
   | Do Statement Proposition
   | Return Type (Maybe Expression)
   | Ignore Expression
+  | Assert Pos Proposition
   | Seq Statement Statement
 
 data Method = Method Type Id Statement

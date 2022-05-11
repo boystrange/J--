@@ -15,7 +15,7 @@
 // Copyright 2022 Luca Padovani
 
 boolean prime(int n) {
-    assert n > 0 : "prime";
+    assert n > 0;
     for (int i = 2; i < n; i++)
         if (n % i == 0) return false;
     return n != 1;

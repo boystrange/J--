@@ -33,10 +33,11 @@ int iterative_fibo(int n) {
 
 // crete identity matrix
 int[][] identity(int n) {
-  assert n > 0 : "invalid matrix size";
+  assert n > 0;
   int[][] m = new int[n][n];
   for (int i = 0; i < n; i++)
-    m[i][i] = 1;
+    for (int j = 0; j < n; j++)
+      m[i][j] = i == j ? 1 : 0;
   return m;
 }
 
@@ -52,13 +53,13 @@ int columns(int[][] m) {
 
 // row i of matrix m
 int[] row(int[][] m, int i) {
-  assert 0 <= i && i < rows(m) : "invalid row index";
+  assert 0 <= i && i < rows(m);
   return m[i];
 }
 
 // column j of matrix m
 int[] column(int[][] m, int j) {
-  assert 0 <= j && j < columns(m) : "invalid column index";
+  assert 0 <= j && j < columns(m);
   int[] c = new int[rows(m)];
   for (int i = 0; i < rows(m); i++)
     c[i] = m[i][j];
@@ -67,7 +68,7 @@ int[] column(int[][] m, int j) {
 
 // scalar product of v and w
 int vector_mul(int[] v, int[] w) {
-  assert v.length == w.length : "invalid vector sizes";
+  assert v.length == w.length;
   int res = 0;
   for (int i = 0; i < v.length; i++)
     res = res + v[i] * w[i];
@@ -76,7 +77,7 @@ int vector_mul(int[] v, int[] w) {
 
 // matrix multiplication a*b
 int[][] matrix_mul(int[][] a, int[][] b) {
-  assert columns(a) == rows(b) : "invalid matrix sizes";
+  assert columns(a) == rows(b);
   int[][] m = new int[rows(a)][columns(b)];
   for (int i = 0; i < rows(a); i++)
     for (int j = 0; j < columns(b); j++)
@@ -86,7 +87,7 @@ int[][] matrix_mul(int[][] a, int[][] b) {
 
 // matrix exponentiation a^n
 int[][] matrix_pow(int[][] a, int n) {
-  assert n >= 0 : "invalid exponent";
+  assert n >= 0;
   if (n == 0) return identity(2);
   else if (n % 2 == 0) {
     int[][] b = matrix_pow(a, n / 2);
@@ -96,7 +97,7 @@ int[][] matrix_pow(int[][] a, int n) {
 
 // efficient version, logarithmic
 int efficient_fibo(int n) {
-  assert n >= 0 : "invalid Fibonacci number";
+  assert n >= 0;
   int[][] a = { { 1, 1 }
               , { 1, 0 } };
   int[][] b = matrix_pow(a, n);

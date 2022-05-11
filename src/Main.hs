@@ -53,8 +53,9 @@ main = do
       let cls = if file == "-" then "stdin" else takeBaseName file
       let methods = Parser.parseProgram file source
       let no_opt = NoOpt `elem` args
+      let assertions = not (NoAssert `elem` args)
       methods <- Checker.checkClass cls methods
-      methods' <- (if no_opt then id else Optimizer.optimizeMethods) <$> Compiler.compileClass methods
+      methods' <- (if no_opt then id else Optimizer.optimizeMethods) <$> Compiler.compileClass assertions methods
       Jasmin.outputClass cls methods'
 
     handler :: FilePath -> MyException -> IO ()
@@ -64,6 +65,7 @@ main = do
 data Flag = Verbose  -- -v --verbose
           | Version  -- -V --version
           | NoOpt    -- -o
+          | NoAssert -- -a
           | Logging  --    --log
           | Help     --    --help
             deriving (Eq, Ord)
@@ -75,6 +77,7 @@ flags =
    , Option "v" ["verbose"]  (NoArg Verbose)     "Print type checking and running activities"
    , Option "V" ["version"]  (NoArg Version)     "Print version information"
    , Option "o" []           (NoArg NoOpt)       "Disable code optimization"
+   , Option "a" []           (NoArg NoAssert)    "Disable assertions"
    , Option "h" ["help"]     (NoArg Help)        "Print this help message" ]
 
 -- |The information displayed when the verbose option is specified.

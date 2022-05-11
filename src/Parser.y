@@ -163,7 +163,7 @@ Statement
   | 'do' Statement 'while' '(' Expression ')' ';' { Do $2 $5 }
   | 'for' '(' SimpleStatement ';' ExpressionOpt ';' SimpleStatement ')' Statement { expandFor $3 $5 $7 $9 }
   | 'return' ExpressionOpt ';' { Return (getPos $1) $2 }
-  | 'assert' Expression ':' STRING ';' { expandAssert $1 $2 (read (getText $4)) }
+  | 'assert' Expression ';' { Assert (getPos $1) $2 }
   | '{' StatementList '}' { Block $2 }
 
 ElseOpt
@@ -298,13 +298,6 @@ expandProgram elems = main : methods
     (methods, slist) = partitionEithers elems
     stmt = foldr Seq Skip slist
     main = Method VoidType (Located Somewhere "main") [(Located Somewhere "_args", ArrayType StringType)] stmt
-
-expandAssert :: Token -> Expression -> String -> Statement
-expandAssert (Token (AlexPn _ l c) _) expr s = Ignore (Call m [expr, Literal (String msg)])
-  where
-    pos = At l c
-    msg = "assertion failed at " ++ show pos ++ ": " ++ s
-    m = Located pos "check_assertion"
 
 happyError :: Token -> Alex a
 happyError (Token (AlexPn _ line col) token) = throw $ ErrorSyntax (At line col) (show token)

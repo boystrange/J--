@@ -27,7 +27,8 @@ import Language
 import TypedLanguage
 
 data CompilerState = CompilerState { next :: Label
-                                   , code :: [Jasmin.Code] }
+                                   , code :: [Jasmin.Code]
+                                   , assertions :: Bool }
 
 type Compiler = StateT CompilerState IO
 
@@ -49,8 +50,10 @@ getCode = do
     State.put (state { code = [] })
     return $ reverse $ code state
 
-compileClass :: [Method] -> IO [Jasmin.Method]
-compileClass methods = State.evalStateT (mapM compileMethod methods) (CompilerState { next = L 0, code = [] })
+compileClass :: Bool -> [Method] -> IO [Jasmin.Method]
+compileClass assertions methods = State.evalStateT (mapM compileMethod methods) init
+    where
+        init = CompilerState { next = L 0, code = [], assertions = assertions }
 
 compileMethod :: Method -> Compiler Jasmin.Method
 compileMethod (Method t x stmt) = do
@@ -96,6 +99,15 @@ compileStmt next (Ignore expr) = do
     let t = typeof expr
     unless (sizeOf t == 0) $ emit $ Jasmin.POP t
     emit $ Jasmin.GOTO next
+compileStmt next (Assert (At l _) prop) = do
+    assertions <- assertions <$> State.get
+    if assertions
+        then do ff <- newLabel
+                compileProp next ff prop
+                emit $ Jasmin.LABEL ff
+                emit $ Jasmin.LDC (Int l)
+                emit $ Jasmin.INVOKE "StandardLibrary" "failed_assertion" VoidType [IntType]
+        else emit $ Jasmin.GOTO next
 
 compileProp :: Label -> Label -> Proposition -> Compiler ()
 compileProp tt ff TrueProp = emit $ Jasmin.GOTO tt
