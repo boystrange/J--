@@ -22,23 +22,28 @@ used to teach the first undergraduate programming course.
 |            |   | `do` Stmt `while` `(` Expr `)` `;`                     | do-while loop         |
 |            |   | `for` `(` SimpleStmt `;` Expr? `;` SimpleStmt `)` Stmt | for loop              |
 |            |   | `return` Expr? `;`                                     | return statement      |
+|            |   | `assert` Expr `;`                                      | assertion             |
 |            |   | `{` Stmt* `}`                                          | block                 |
 |       Init | : | ID (`=` Expr)?                                         |                       |
-|        Ref | : | ID                                                     |                       |
-|            |   | ref `[` Expr `]`                                       |                       |
+|  ArrayExpr | : | `{` (InitExpr (`,` InitExpr)*)? `}`                    | array expression      |
+|   InitExpr | : | Expr                                                   |                       |
+|            |   | ArrayExpr                                              |                       |
 |       Expr | : | Literal                                                | literal constant      |
+|            |   | ID                                                     | reference             |
 |            |   | ID `(` (Expr (`,` Expr)*)? `)`                         | method invocation     |
 |            |   | `new` Type (`[` Expr `]`)+                             | array creation        |
-|            |   | Ref                                                    | reference             |
+|            |   | `new` Type ArrayExpr                                   | array initialization  |
+|            |   | Expr `[` Expr `]`                                      | array reference       |
+|            |   | Expr `.` `length`                                      | array length          |
 |            |   | `(` Expr `)`                                           | parentheses           |
-|            |   | Ref `=` Expr                                           | assignment            |
 |            |   | `(` Type `)` Expr                                      | type cast             |
-|            |   | Ref STEPOP                                             | postfix step operator |
-|            |   | STEPOP Ref                                             | prefix step operator  |
-|            |   | PREOP Expr                                             | prefix unary operator |
+|            |   | Expr `=` Expr                                          | assignment            |
 |            |   | Expr BINOP Expr                                        | infix binary operator |
-|    Literal | : | `null`                                                 | null reference        |
-|            |   | INT                                                    |                       |
+|            |   | Expr STEP                                              | postfix step operator |
+|            |   | STEP Expr                                              | prefix step operator  |
+|            |   | UNOP Expr                                              | prefix unary operator |
+|            |   | Expr `?` Expr `:` Expr                                 | ternary expression    |
+|    Literal | : | INT                                                    |                       |
 |            |   | FLOAT                                                  |                       |
 |            |   | DOUBLE                                                 |                       |
 |            |   | BOOLEAN                                                |                       |
@@ -52,12 +57,12 @@ used to teach the first undergraduate programming course.
 |            |   | `char`                                                 |                       |
 |            |   | `String`                                               |                       |
 |            |   | Type `[` `]`                                           |                       |
-|      BINOP | : | `+` \| `-` \| `*` \| `/` \| `%`                        |                       |
-|            |   | `==` \| `!=` \| `<` \| `>` \| `<=` \| `>=`             |                       |
-|            |   | `&&` \| `\|\|`                                         |                       |
-|      PREOP | : | `+` \| `-`                                             |                       |
-|            |   | `!`                                                    |                       |
-|     STEPOP | : | `++` \| `--`                                           |                       |
+|      BINOP | : | MATHOP \| RELOP \| BOOLOP                              |                       |
+|     MATHOP | : | `+` \| `-` \| `*` \| `/` \| `%`                        | math operations       |
+|      RELOP | : | `==` \| `!=` \| `<` \| `>` \| `<=` \| `>=`             |                       |
+|     BOOLOP | : | `&&` \| `\|\|`                                         |                       |
+|       UNOP | : | `+` \| `-` \| `!`                                      |                       |
+|       STEP | : | `++` \| `--`                                           |                       |
 |    BOOLEAN | : | `true` \| `false`                                      |                       |
 |      DIGIT | : | [`0`-`9`]                                              |                       |
 |      ALPHA | : | [`a`-`z` `A`-`Z`]                                      |                       |
