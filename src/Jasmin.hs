@@ -93,7 +93,7 @@ instance Jasmin Type where
     jasmin CharType          = "C"
     jasmin StringType        = "Ljava/lang/String;"
     jasmin (ArrayType t)     = "[" ++ jasmin t
-    jasmin (MethodType t ts) = "(" ++ concat (map jasmin ts) ++ ")" ++ jasmin t
+    jasmin (MethodType t ts) = "(" ++ concatMap jasmin ts ++ ")" ++ jasmin t
 
 instance Jasmin RelOp where
     jasmin JEQ = "eq"
@@ -104,6 +104,7 @@ instance Jasmin RelOp where
     jasmin JGE = "ge"
 
 instance Jasmin SignOp where
+    jasmin Language.POS = error "impossible"
     jasmin Language.NEG = "neg"
 
 instance Jasmin BinOp where
@@ -303,11 +304,12 @@ typeDouble t | double t  = "2"
              | otherwise = ""
 
 typePrefix :: Type -> String
-typePrefix VoidType      = ""
-typePrefix (ArrayType _) = "a"
-typePrefix BooleanType   = "i"
-typePrefix IntType       = "i"
-typePrefix FloatType     = "f"
-typePrefix DoubleType    = "d"
-typePrefix CharType      = "i"
-typePrefix StringType    = "a"
+typePrefix VoidType         = ""
+typePrefix (ArrayType _)    = "a"
+typePrefix BooleanType      = "i"
+typePrefix IntType          = "i"
+typePrefix FloatType        = "f"
+typePrefix DoubleType       = "d"
+typePrefix CharType         = "i"
+typePrefix StringType       = "a"
+typePrefix (MethodType _ _) = error "impossible"

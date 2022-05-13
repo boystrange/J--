@@ -108,6 +108,7 @@ compileStmt next (Assert (At l _) prop) = do
         emit $ Jasmin.LDC (Int l)
         emit $ Jasmin.INVOKE "StandardLibrary" "failed_assertion" VoidType [IntType]
     emit $ Jasmin.GOTO next
+compileStmt next (Assert Somewhere _) = error "impossible"
 
 compileProp :: Label -> Label -> Proposition -> Compiler ()
 compileProp tt ff TrueProp = emit $ Jasmin.GOTO tt
@@ -142,6 +143,7 @@ compileInit (ArrayType t) (ArrayInit inits) = do
                                               emit $ Jasmin.LDC (Int i)
                                               compileInit t init
                                               emit $ Jasmin.ASTORE t)
+compileInit _ (ArrayInit _) = error "impossible"
 
 compileStep :: Type -> StepOp -> SignOp -> Reference -> Compiler ()
 compileStep _ step sign (IdRef t i _) = do

@@ -53,7 +53,7 @@ main = do
       let cls = if file == "-" then "stdin" else takeBaseName file
       let methods = Parser.parseProgram file source
       let no_opt = NoOpt `elem` args
-      let assertions = not (NoAssert `elem` args)
+      let assertions = NoAssert `notElem` args
       methods <- Checker.checkClass cls methods
       methods' <- (if no_opt then id else Optimizer.optimizeMethods) <$> Compiler.compileClass assertions methods
       Jasmin.outputClass cls methods'

@@ -284,9 +284,6 @@ expandLocals t = foldl Seq Skip . map (uncurry $ aux t)
     aux t@(ArrayType _) x init@(ArrayInit pos _) = Seq (Local t x) (Ignore $ Assign (posof x) (IdRef x) (Array pos t init))
     aux t _ (ArrayInit pos _) = throw $ ErrorArrayInitializer pos t
 
--- expandInit :: Type -> Located Id -> InitExpression -> Statement
--- expandInit = undefined
-
 expandFor :: Statement -> Maybe Expression -> Statement -> Statement -> Statement
 expandFor init mexpr incr body = Block $ Seq init $ While test $ Seq body incr
   where

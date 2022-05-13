@@ -48,7 +48,7 @@ popScope :: Checker ()
 popScope = modifySymbolTable SymbolTable.pop
 
 getEntry :: Located Id -> Checker Entry
-getEntry x = SymbolTable.get x <$> table <$> State.get
+getEntry x = SymbolTable.get x . table <$> State.get
 
 getType :: Located Id -> Checker Type
 getType x = SymbolTable.entryType <$> getEntry x
@@ -102,7 +102,7 @@ checkStmt rt (Seq stmt1 stmt2) = do
   stmt1' <- checkStmt rt stmt1
   if returns stmt1
     then return stmt1'
-    else (Typed.Seq stmt1' <$> checkStmt rt stmt2)
+    else Typed.Seq stmt1' <$> checkStmt rt stmt2
 checkStmt rt (Local t x) = do
   newEntry Nothing x t
   return Typed.Skip
@@ -117,6 +117,7 @@ checkInit pos t (SimpleInit expr) = do
   return $ Typed.SimpleInit (widen pos t expr')
 checkInit _ (ArrayType t) (ArrayInit pos exprs) = Typed.ArrayInit <$> mapM (checkInit pos t) exprs
 checkInit _ t (ArrayInit pos _) = throw $ ErrorArrayInitializer pos t
+checkInit _ _ NoInit = error "impossible?"
 
 checkRef :: Expression -> Checker Typed.Reference
 checkRef (IdRef x) = do
@@ -141,7 +142,7 @@ checkExpr (Call x exprs) = do
   cls <- getClass x
   unless (length ts == length exprs) $ throw $ ErrorWrongNumberOfArguments x (length ts) (length exprs)
   exprs' <- mapM checkExpr exprs
-  return $ Typed.Call rt cls (locatedData x) (map (uncurry (widen (locatedPos x))) (zip ts exprs'))
+  return $ Typed.Call rt cls (locatedData x) (zipWith (widen (locatedPos x)) ts exprs')
 checkExpr (New pos t exprs) = do
   exprs' <- mapM checkExpr exprs
   return $ Typed.New t (map (widen pos IntType) exprs')
@@ -232,7 +233,7 @@ checkProp (Or prop1 prop2) = do
   prop2' <- checkProp prop2
   return $ Typed.Or prop1' prop2'
 checkProp (Not prop) = Typed.Not <$> checkProp prop
-checkProp expr = Typed.FromExpression <$> widen (posof expr) BooleanType <$> checkExpr expr
+checkProp expr = Typed.FromExpression . widen (posof expr) BooleanType <$> checkExpr expr
 
 getMethodType :: Located Id -> Checker (Type, [Type])
 getMethodType x = do
