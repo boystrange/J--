@@ -81,4 +81,16 @@ public class StandardLibrary {
     public static double milliseconds() {
         return System.currentTimeMillis() / 1000.0d;
     }
+
+    public static double random_double() {
+	return Math.random();
+    }
+
+    public static float random_float() {
+	return (float) random_double();
+    }
+
+    public static int random_int(int n) {
+	return (int) (random_double() * n);
+    }
 }

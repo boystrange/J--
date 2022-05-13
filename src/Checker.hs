@@ -267,6 +267,9 @@ library =
   , ("float_to_string",   MethodType StringType [FloatType])
   , ("double_to_string",  MethodType StringType [DoubleType])
   , ("char_to_string",    MethodType StringType [CharType])
+  , ("random_double",     MethodType DoubleType [])
+  , ("random_float",      MethodType FloatType  [])
+  , ("random_int",        MethodType IntType    [IntType])
   ]
 
 checkClass :: String -> [Method] -> IO [Typed.Method]
