@@ -39,11 +39,11 @@ import Control.Exception
 
 %token
   ID        { $$@(Token _ (TokenID _)) }
-  INT       { $$@(Token _ (TokenINT _)) }
-  FLOAT     { $$@(Token _ (TokenFLOAT _)) }
-  DOUBLE    { $$@(Token _ (TokenDOUBLE _)) }
-  CHAR      { $$@(Token _ (TokenCHAR _)) }
-  STRING    { $$@(Token _ (TokenSTRING _)) }
+  INT       { (Token _ (TokenINT $$)) }
+  FLOAT     { (Token _ (TokenFLOAT $$)) }
+  DOUBLE    { (Token _ (TokenDOUBLE $$)) }
+  CHAR      { (Token _ (TokenCHAR $$)) }
+  STRING    { (Token _ (TokenSTRING $$)) }
   'void'    { Token _ TokenVoid }
   'boolean' { Token _ TokenBoolean }
   'int'     { Token _ TokenInt }
@@ -252,11 +252,11 @@ Expression
 Literal
   : 'true'  { Boolean True }
   | 'false' { Boolean False }
-  | INT     { Int (read (getText $1)) }
-  | FLOAT   { Float (read (getText $1)) }
-  | DOUBLE  { Double (read (getText $1)) }
-  | CHAR    { Char (read (getText $1)) }
-  | STRING  { String (read (getText $1)) }
+  | INT     { Int $1 }
+  | FLOAT   { Float $1 }
+  | DOUBLE  { Double $1 }
+  | CHAR    { Char $1 }
+  | STRING  { String $1 }
 
 Id
   : ID { Located (getPos $1) (getText $1) }
@@ -264,11 +264,6 @@ Id
 {
 getText :: Token -> String
 getText (Token _ (TokenID x)) = x
-getText (Token _ (TokenINT x)) = x
-getText (Token _ (TokenFLOAT x)) = x
-getText (Token _ (TokenDOUBLE x)) = x
-getText (Token _ (TokenCHAR x)) = x
-getText (Token _ (TokenSTRING x)) = x
 
 getPos :: Token -> Pos
 getPos (Token (AlexPn _ line col) _) = At line col
@@ -300,8 +295,8 @@ happyError :: Token -> Alex a
 happyError (Token (AlexPn _ line col) token) = throw $ ErrorSyntax (At line col) (show token)
 
 parseProgram :: FilePath -> String -> [Method]
-parseProgram path text = 
+parseProgram path text =
   case runAlex' parse path text of
-    Left _ -> error "impossible"
+    Left _ -> error "impossible?"
     Right methods -> methods
 }

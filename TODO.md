@@ -16,3 +16,4 @@
 
 * support `null`?
 * support `switch`?
+* support `break` and `continue` for cycles

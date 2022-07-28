@@ -18,6 +18,7 @@
 -- Haskell's standard library.
 module Common where
 
+import Numeric (showHex)
 import qualified Data.List as List
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -37,6 +38,20 @@ subscript = map convert . show
     convert ch | isDigit ch = chr (ord ch - ord '0' + ord '₀')
                | ch == '-' = '₋'
                | otherwise = error "impossible"
+
+-- |Convert a number into base 16 using the specified number of
+-- digits
+hex :: Int -> Int -> String
+hex _ 0 = []
+hex n k = hex (n `div` 16) (k - 1) ++ [hexDigit (n `mod` 16)]
+  where
+    hexDigit n | n < 10    = chr (ord '0' + n)
+               | otherwise = chr (ord 'A' + n - 10)
+
+-- |Escape a string using Unicode
+escape :: String -> String
+escape [] = []
+escape (c : cs) = "\\u" ++ hex (ord c) 4 ++ escape cs
 
 -- |Map the second component of a pair
 mapSnd :: (a -> b) -> [(c, a)] -> [(c, b)]

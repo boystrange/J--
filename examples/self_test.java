@@ -95,6 +95,10 @@ char to_upper(char c) {
     return c >= 'a' && c <= 'z' ? (char) (c - 'a' + 'A') : c;
 }
 
+void check_unicode_escape() {
+    println("Print a greek alpha \u03B1");
+}
+
 check_assignement();
 check_relations();
 check_unary_operators();
@@ -103,3 +107,4 @@ check_arrays();
 check_bidimensional_arrays();
 check_short_circuit();
 check_characters();
+check_unicode_escape();

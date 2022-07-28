@@ -32,60 +32,63 @@ import Control.Monad (liftM)
 
 %wrapper "monadUserState"
 
-$digit   = 0-9
-$alpha   = [A-Za-z]
-@next    = $alpha | $digit | \_
-@id      = $alpha @next*
-@nat     = $digit+
-@sign    = [\+\-]
-@minus   = \-
-@exp     = [eE] @sign? @nat
-@int     = @minus? @nat
-@float   = (@nat \. @nat?) | (@nat? \. @nat) @exp?
-@double  = @float [dD]
-@escape  = \\ [\\\'\"abfnrt]
-@stringc = @escape | [^\"\\]
-@string  = \" @stringc* \"
-@charc   = @escape | [^\'\\]
-@char    = \' @charc \'
+$digit    = 0-9
+$hexdigit = [0-9a-fA-F]
+$alpha    = [A-Za-z]
+@next     = $alpha | $digit | \_
+@id       = $alpha @next*
+@nat      = $digit+
+@sign     = [\+\-]
+@minus    = \-
+@exp      = [eE] @sign? @nat
+@int      = @minus? @nat
+@floating = (@nat \. @nat?) | (@nat? \. @nat) @exp?
+@float    = @floating [fF]
+@double   = @floating [dD]
+@escape   = \\ ([\\\'\"abfnrt] | [u]+ $hexdigit $hexdigit $hexdigit $hexdigit)
+@stringc  = @escape | [^\"\\]
+@string   = \" @stringc* \"
+@charc    = @escape | [^\'\\]
+@char     = \' @charc \'
 
 tokens :-
-  $white+ ;
-  "//".*  ;
-  "."     { lex' TokenDOT         }
-  ","     { lex' TokenCOMMA       }
-  ":"     { lex' TokenCOLON       }
-  ";"     { lex' TokenSEMICOLON   }
-  "("     { lex' TokenLPAREN      }
-  ")"     { lex' TokenRPAREN      }
-  "{"     { lex' TokenLBRACE      }
-  "}"     { lex' TokenRBRACE      }
-  "["     { lex' TokenLBRACK      }
-  "]"     { lex' TokenRBRACK      }
-  "="     { lex' TokenEQ          }
-  "++"    { lex' TokenINC         }
-  "--"    { lex' TokenDEC         }
-  "+"     { lex' TokenADD         }
-  "-"     { lex' TokenSUB         }
-  "*"     { lex' TokenMUL         }
-  "/"     { lex' TokenDIV         }
-  "%"     { lex' TokenMOD         }
-  "<"     { lex' TokenLT          }
-  "<="    { lex' TokenLE          }
-  ">"     { lex' TokenGT          }
-  ">="    { lex' TokenGE          }
-  "=="    { lex' TokenEQQ         }
-  "!="    { lex' TokenNE          }
-  "&&"    { lex' TokenAND         }
-  "||"    { lex' TokenOR          }
-  "?"     { lex' TokenQMARK       }
-  "!"     { lex' TokenEMARK       }
-  @id     { lex lookupID          }
-  @int    { lex TokenINT          }  
-  @float  { lex TokenFLOAT        }
-  @double { lex (TokenDOUBLE . init) }
-  @char   { lex TokenCHAR         }
-  @string { lex TokenSTRING       }
+  $white+   ;
+  "//".*    ;
+  "."       { lex' TokenDOT         }
+  ","       { lex' TokenCOMMA       }
+  ":"       { lex' TokenCOLON       }
+  ";"       { lex' TokenSEMICOLON   }
+  "("       { lex' TokenLPAREN      }
+  ")"       { lex' TokenRPAREN      }
+  "{"       { lex' TokenLBRACE      }
+  "}"       { lex' TokenRBRACE      }
+  "["       { lex' TokenLBRACK      }
+  "]"       { lex' TokenRBRACK      }
+  "="       { lex' TokenEQ          }
+  "++"      { lex' TokenINC         }
+  "--"      { lex' TokenDEC         }
+  "+"       { lex' TokenADD         }
+  "-"       { lex' TokenSUB         }
+  "*"       { lex' TokenMUL         }
+  "/"       { lex' TokenDIV         }
+  "%"       { lex' TokenMOD         }
+  "<"       { lex' TokenLT          }
+  "<="      { lex' TokenLE          }
+  ">"       { lex' TokenGT          }
+  ">="      { lex' TokenGE          }
+  "=="      { lex' TokenEQQ         }
+  "!="      { lex' TokenNE          }
+  "&&"      { lex' TokenAND         }
+  "||"      { lex' TokenOR          }
+  "?"       { lex' TokenQMARK       }
+  "!"       { lex' TokenEMARK       }
+  @id       { lex lookupID          }
+  @int      { lex (TokenINT . read) }
+  @float    { lex (TokenFLOAT . read . init) }
+  @double   { lex (TokenDOUBLE . read . init) }
+  @floating { lex (TokenDOUBLE . read) }
+  @char     { lex (TokenCHAR . unescapeChar) }
+  @string   { lex (TokenSTRING . unescapeString) }
 
 {
 -- To improve error messages, We keep the path of the file we are
@@ -149,10 +152,10 @@ data TokenClass
   | TokenAssert
   | TokenTrue
   | TokenFalse
-  | TokenINT String
-  | TokenFLOAT String
-  | TokenDOUBLE String
-  | TokenCHAR String
+  | TokenINT Int
+  | TokenFLOAT Float
+  | TokenDOUBLE Double
+  | TokenCHAR Char
   | TokenSTRING String
   | TokenID String
   | TokenEQQ
@@ -226,4 +229,32 @@ alexError' (AlexPn _ l c) msg = do
 -- A variant of runAlex, keeping track of the path of the file we are lexing.
 runAlex' :: Alex a -> FilePath -> String -> Either String a
 runAlex' a fp input = runAlex input (setFilePath fp >> a)
+
+unescapeChar :: String -> Char
+unescapeChar cs =
+  case unescape (tail (init cs)) of
+    [c] -> c
+    _   -> error "this should not happen"
+
+unescapeString :: String -> String
+unescapeString cs = unescape (tail (init cs))
+
+unescape :: String -> String
+unescape = aux
+  where
+    aux [] = []
+    aux ('\\' : '\\' : cs) = '\\' : aux cs
+    aux ('\\' : '\'' : cs) = '\'' : aux cs
+    aux ('\\' : '\"' : cs) = '\"' : aux cs
+    aux ('\\' : 'a' : cs) = '\a' : aux cs
+    aux ('\\' : 'b' : cs) = '\b' : aux cs
+    aux ('\\' : 'f' : cs) = '\f' : aux cs
+    aux ('\\' : 'n' : cs) = '\n' : aux cs
+    aux ('\\' : 'r' : cs) = '\r' : aux cs
+    aux ('\\' : 't' : cs) = '\t' : aux cs
+    aux ('\\' : 'u' : cs) = auxU cs
+    aux (c : cs) | c /= '\\' = c : aux cs
+
+    auxU ('u' : cs) = auxU cs
+    auxU (a : b : c : d : cs) = read ['\'', '\\', 'x', a, b, c, d, '\''] : aux cs
 }

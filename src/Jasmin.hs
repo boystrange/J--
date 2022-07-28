@@ -16,6 +16,7 @@
 
 module Jasmin where
 
+import Common (escape)
 import Atoms
 import Type
 import Language
@@ -119,9 +120,9 @@ instance Jasmin Literal where
     jasmin (Boolean True)  = "1"
     jasmin (Int n)         = show n
     jasmin (Float n)       = show n
-    jasmin (Double n)      = show n
+    jasmin (Double n)      = show n ++ "d"
     jasmin (Char c)        = show (ord c)
-    jasmin (String s)      = show s -- FIXME?
+    jasmin (String s)      = "\"" ++ escape s ++ "\""
 
 data Code
     = LABEL Label
