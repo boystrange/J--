@@ -163,9 +163,9 @@ checkExpr (Binary pos op expr1 expr2) = do
   let t1 = typeof expr1'
   let t2 = typeof expr2'
   case merge t1 t2 of
-    Just t -> return $ Typed.Binary t op (widen pos t expr1') (widen pos t expr2')
+    Just t | isNumeric t -> return $ Typed.Binary t op (widen pos t expr1') (widen pos t expr2')
     Nothing | stringable op t1 t2 -> return $ Typed.Binary StringType op (string expr1') (string expr2')
-    Nothing -> throw $ ErrorBinaryOperator pos op t1 t2
+    _ -> throw $ ErrorBinaryOperator pos op t1 t2
 checkExpr (Ternary pos prop expr1 expr2) = do
   prop' <- checkProp prop
   expr1' <- checkExpr expr1
