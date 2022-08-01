@@ -86,6 +86,10 @@ public class StandardLibrary {
 	return Math.random();
     }
 
+    public static double sqrt(double x) {
+	return Math.sqrt(x);
+    }
+
     public static float random_float() {
 	return (float) random_double();
     }

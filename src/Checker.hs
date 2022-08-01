@@ -271,6 +271,7 @@ library =
   , ("random_double",     MethodType DoubleType [])
   , ("random_float",      MethodType FloatType  [])
   , ("random_int",        MethodType IntType    [IntType])
+  , ("sqrt",              MethodType DoubleType [DoubleType])
   ]
 
 checkClass :: String -> [Method] -> IO [Typed.Method]
