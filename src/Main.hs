@@ -33,7 +33,7 @@ import System.Environment (getProgName, getArgs)
 import Control.Monad (when)
 import Control.Exception (catch, throw)
 import qualified Data.Version
-import System.FilePath.Posix (takeFileName, takeBaseName)
+import System.FilePath (takeFileName, takeBaseName)
 
 -- |Version of the program.
 version :: Data.Version.Version
