@@ -15,6 +15,12 @@ extra-source-files:  ChangeLog.md,
 cabal-version:       >=1.18
 
 executable j--
+  if !os(darwin) {
+    ghc-options: -static -threaded
+    cc-options: -static
+    ld-options: -static -pthread
+  }
+
   main-is:           Main.hs
 
   other-modules:     Common,
