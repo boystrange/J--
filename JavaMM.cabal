@@ -1,18 +1,17 @@
 name:                JavaMM
-version:             1.0
+version:             1.1
 synopsis:            J-- Compiler
-homepage:            http://www.di.unito.it/~padovani/Software/FairCheck/index.html
 license:             GPL-3
 license-file:        LICENSE
 author:              Luca Padovani
-maintainer:          luca.padovani@unito.it
+maintainer:          luca.padovani@unicam.it
 copyright:           (c) 2022 Luca Padovani
 category:            Language
 build-type:          Simple
 extra-source-files:  ChangeLog.md,
                      README.md,
                      Makefile
-cabal-version:       >=1.18
+cabal-version:       1.18
 
 executable j--
   if !os(darwin) {

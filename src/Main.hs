@@ -37,7 +37,7 @@ import System.FilePath (takeFileName, takeBaseName)
 
 -- |Version of the program.
 version :: Data.Version.Version
-version = Data.Version.makeVersion [1, 0]
+version = Data.Version.makeVersion [1, 1]
 
 -- |Entry point.
 main :: IO ()
