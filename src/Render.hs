@@ -77,7 +77,10 @@ prettyType = annotate (PT.colorDull PT.Cyan) . undefined
 instance Show Type where
   show VoidType = "void"
   show BooleanType = "boolean"
+  show ByteType = "byte"
+  show ShortType = "short"
   show IntType = "int"
+  show LongType = "long"
   show FloatType = "float"
   show DoubleType = "double"
   show CharType = "char"

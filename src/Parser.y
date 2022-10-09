@@ -40,13 +40,17 @@ import Control.Exception
 %token
   ID        { $$@(Token _ (TokenID _)) }
   INT       { (Token _ (TokenINT $$)) }
+  LONG      { (Token _ (TokenLONG $$)) }
   FLOAT     { (Token _ (TokenFLOAT $$)) }
   DOUBLE    { (Token _ (TokenDOUBLE $$)) }
   CHAR      { (Token _ (TokenCHAR $$)) }
   STRING    { (Token _ (TokenSTRING $$)) }
   'void'    { Token _ TokenVoid }
   'boolean' { Token _ TokenBoolean }
+  'byte'    { Token _ TokenByte }
+  'short'   { Token _ TokenShort }
   'int'     { Token _ TokenInt }
+  'long'    { Token _ TokenLong }
   'float'   { Token _ TokenFloat }
   'double'  { Token _ TokenDouble }
   'char'    { Token _ TokenChar }
@@ -138,7 +142,10 @@ Arg
 Type
   : 'void'       { VoidType }
   | 'boolean'    { BooleanType }
+  | 'byte'       { ByteType }
+  | 'short'      { ShortType }
   | 'int'        { IntType }
+  | 'long'       { LongType }
   | 'float'      { FloatType }
   | 'double'     { DoubleType }
   | 'char'       { CharType }
@@ -253,6 +260,7 @@ Literal
   : 'true'  { Boolean True }
   | 'false' { Boolean False }
   | INT     { Int $1 }
+  | LONG    { Long $1 }
   | FLOAT   { Float $1 }
   | DOUBLE  { Double $1 }
   | CHAR    { Char $1 }

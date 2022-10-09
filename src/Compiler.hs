@@ -105,7 +105,7 @@ compileStmt next (Assert (At l _) prop) = do
         ff <- newLabel
         compileProp next ff prop
         emit $ Jasmin.LABEL ff
-        emit $ Jasmin.LDC (Int l)
+        emit $ Jasmin.LDC IntType (Int l)
         emit $ Jasmin.INVOKE "StandardLibrary" "failed_assertion" VoidType [IntType]
     emit $ Jasmin.GOTO next
 compileStmt next (Assert Somewhere _) = error "impossible"
@@ -137,10 +137,10 @@ compileProp tt ff (FromExpression expr) = do
 compileInit :: Type -> InitExpression -> Compiler ()
 compileInit t (SimpleInit expr) = compileExpr expr
 compileInit (ArrayType t) (ArrayInit inits) = do
-    emit $ Jasmin.LDC (Int (length inits))
+    emit $ Jasmin.LDC IntType (Int (length inits))
     emit $ Jasmin.NEWARRAYS (ArrayType t) 1
     forM_ (zip [0..] inits) (\(i, init) -> do emit $ Jasmin.DUP (ArrayType t)
-                                              emit $ Jasmin.LDC (Int i)
+                                              emit $ Jasmin.LDC IntType (Int i)
                                               compileInit t init
                                               emit $ Jasmin.ASTORE t)
 compileInit _ (ArrayInit _) = error "impossible"
@@ -149,7 +149,7 @@ compileStep :: Type -> StepOp -> SignOp -> Reference -> Compiler ()
 compileStep _ step sign (IdRef t i _) = do
     emit $ Jasmin.LOAD t i
     when (step == POST) $ emit $ Jasmin.DUP t
-    emit $ Jasmin.LDC (one t)
+    emit $ Jasmin.LDC t (one t)
     emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
     when (step == PRE) $ emit $ Jasmin.DUP t
     emit $ Jasmin.STORE t i
@@ -159,7 +159,7 @@ compileStep _ step sign (ArrayRef t expr1 expr2) = do
     emit $ Jasmin.DUP2 (ArrayType t) IntType
     emit $ Jasmin.ALOAD t
     when (step == POST) $ emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
-    emit $ Jasmin.LDC (one t)
+    emit $ Jasmin.LDC t (one t)
     emit $ Jasmin.BINARY t (if sign == POS then ADD else SUB)
     when (step == PRE) $ emit $ Jasmin.DUP_X2 (ArrayType t) IntType t
     emit $ Jasmin.ASTORE t
@@ -177,7 +177,7 @@ compileAssign (ArrayRef t expr1 expr2) expr3 = do
     emit $ Jasmin.ASTORE t
 
 compileExpr :: Expression -> Compiler ()
-compileExpr (Literal lit) = emit $ Jasmin.LDC lit
+compileExpr (Literal lit) = emit $ Jasmin.LDC (typeof lit) lit
 compileExpr (Call t cls x exprs) = do
     forM_ exprs compileExpr
     emit $ Jasmin.INVOKE cls x t (map typeof exprs)

@@ -41,7 +41,7 @@ initialJasminCheckerState (MethodType _ ts)
     = JasminCheckerState
     { frame = sum (map sizeOf ts)
     , stype = Just []
-    , ltype = Map.empty 
+    , ltype = Map.empty
     , stack = 0 }
 
 type JasminChecker = StateT JasminCheckerState IO
@@ -88,7 +88,10 @@ class Jasmin a where
 instance Jasmin Type where
     jasmin VoidType          = "V"
     jasmin BooleanType       = "Z"
+    jasmin ByteType          = "B"
+    jasmin ShortType         = "S"
     jasmin IntType           = "I"
+    jasmin LongType          = "J"
     jasmin FloatType         = "F"
     jasmin DoubleType        = "D"
     jasmin CharType          = "C"
@@ -127,7 +130,7 @@ instance Jasmin Literal where
 data Code
     = LABEL Label
     | GOTO Label
-    | LDC Literal
+    | LDC Type Literal
     | LOAD Type Slot
     | STORE Type Slot
     | ALOAD Type
@@ -199,7 +202,7 @@ check (LABEL l) = do
             ts <- getStackType
             State.put (state { stype = Just ts })
 check (GOTO l) = jump l >> undefineStack
-check (LDC lit) = push (typeof lit)
+check (LDC t _) = push t
 check (LOAD t i) = push t >> access t i
 check (STORE t i) = pop t >> access t i
 check (ALOAD t) = do
@@ -262,7 +265,7 @@ library = INVOKE "StandardLibrary"
 instance Jasmin Code where
     jasmin (LABEL l)         = show l ++ ":"
     jasmin (GOTO l)          = "    goto " ++ show l
-    jasmin (LDC lit)         = "    ldc" ++ literalDouble lit ++ " " ++ jasmin lit
+    jasmin (LDC t lit)       = "    ldc" ++ loadDouble t ++ " " ++ jasmin lit
     jasmin (LOAD t i)        = "    " ++ typePrefix t ++ "load " ++ show i
     jasmin (STORE t i)       = "    " ++ typePrefix t ++ "store " ++ show i
     jasmin (ALOAD t)         = "    " ++ typePrefix t ++ "aload"
@@ -287,22 +290,47 @@ instance Jasmin Code where
 conversion :: Type -> Type -> String
 conversion t StringType = "invokestatic stringOf(" ++ jasmin t ++ ")Ljava/lang/String;"
 conversion BooleanType IntType = "nop"
+conversion ByteType ShortType = "nop"
+conversion ByteType CharType = "nop"
+conversion ByteType IntType = "nop"
+conversion ByteType LongType = "i2l"
+conversion ByteType FloatType = "i2f"
+conversion ByteType DoubleType = "i2d"
+conversion IntType ByteType = "i2b"
+conversion IntType ShortType = "i2s"
+conversion IntType LongType = "i2l"
 conversion IntType FloatType = "i2f"
 conversion IntType DoubleType = "i2d"
 conversion IntType CharType = "i2c"
+conversion ShortType ByteType = "i2b"
+conversion ShortType ShortType = "nop"
+conversion ShortType IntType = "nop"
+conversion ShortType LongType = "i2l"
+conversion ShortType FloatType = "i2f"
+conversion ShortType DoubleType = "i2d"
+conversion CharType ByteType = "i2b"
+conversion CharType ShortType = "nop"
 conversion CharType IntType = "nop"
+conversion CharType LongType = "i2l"
 conversion CharType FloatType = "i2f"
 conversion CharType DoubleType = "i2d"
+conversion FloatType ByteType = "f2i"
+conversion FloatType ShortType = "f2i"
 conversion FloatType CharType = "f2i"
 conversion FloatType IntType = "f2i"
+conversion FloatType LongType = "f2l"
 conversion FloatType DoubleType = "f2d"
+conversion DoubleType ByteType = "d2i"
+conversion DoubleType ShortType = "d2i"
 conversion DoubleType CharType = "d2i"
 conversion DoubleType IntType = "d2i"
+conversion DoubleType LongType = "d2l"
 conversion DoubleType FloatType = "d2f"
 
-literalDouble :: Literal -> String
-literalDouble (Double _) = "2_w"
-literalDouble _          = ""
+loadDouble :: Type -> String
+loadDouble LongType   = "2_e"
+loadDouble DoubleType = "2_w"
+loadDouble _          = ""
 
 typeDouble :: Type -> String
 typeDouble t | double t  = "2"
@@ -312,7 +340,10 @@ typePrefix :: Type -> String
 typePrefix VoidType         = ""
 typePrefix (ArrayType _)    = "a"
 typePrefix BooleanType      = "i"
+typePrefix ByteType         = "i"
+typePrefix ShortType        = "i"
 typePrefix IntType          = "i"
+typePrefix LongType         = "l"
 typePrefix FloatType        = "f"
 typePrefix DoubleType       = "d"
 typePrefix CharType         = "i"

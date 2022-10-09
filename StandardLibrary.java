@@ -53,8 +53,20 @@ public class StandardLibrary {
         return Boolean.toString(b);
     }
 
+    public static String byte_to_String(byte n) {
+        return Byte.toString(n);
+    }
+
+    public static String short_to_String(short n) {
+        return Short.toString(n);
+    }
+
     public static String int_to_String(int n) {
         return Integer.toString(n);
+    }
+
+    public static String long_to_String(long n) {
+        return Long.toString(n);
     }
 
     public static String float_to_String(float n) {

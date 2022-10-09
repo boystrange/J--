@@ -19,7 +19,10 @@ module Type where
 data Type
   = VoidType
   | BooleanType
+  | ByteType
+  | ShortType
   | IntType
+  | LongType
   | FloatType
   | DoubleType
   | CharType
@@ -29,7 +32,10 @@ data Type
   deriving Eq
 
 isNumeric :: Type -> Bool
+isNumeric ByteType = True
+isNumeric ShortType = True
 isNumeric IntType = True
+isNumeric LongType = True
 isNumeric FloatType = True
 isNumeric DoubleType = True
 isNumeric _ = False
@@ -57,6 +63,7 @@ sizeOf :: Type -> Int
 sizeOf VoidType = 0
 sizeOf (MethodType _ _) = 0
 sizeOf DoubleType = 2
+sizeOf LongType = 2
 sizeOf _ = 1
 
 double :: Type -> Bool
@@ -68,11 +75,27 @@ merge t s | widening t s = Just s
 merge _ _ = Nothing
 
 widening :: Type -> Type -> Bool
+widening ByteType  CharType   = True
+widening ByteType  ShortType  = True
+widening ByteType  IntType    = True
+widening ByteType  LongType   = True
+widening ByteType  FloatType  = True
+widening ByteType  DoubleType = True
+widening CharType  ShortType  = True
 widening CharType  IntType    = True
+widening CharType  LongType   = True
 widening CharType  FloatType  = True
 widening CharType  DoubleType = True
+widening ShortType ShortType  = True
+widening ShortType IntType    = True
+widening ShortType LongType   = True
+widening ShortType FloatType  = True
+widening ShortType DoubleType = True
+widening IntType   LongType   = True
 widening IntType   FloatType  = True
 widening IntType   DoubleType = True
+widening LongType  FloatType  = True
+widening LongType  DoubleType = True
 widening FloatType DoubleType = True
 widening t         s          = t == s
 

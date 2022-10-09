@@ -22,6 +22,7 @@ import Type
 data Literal
   = Boolean Bool
   | Int Int
+  | Long Integer
   | Float Float
   | Double Double
   | Char Char
@@ -57,7 +58,10 @@ data SignOp = NEG | POS
   deriving Eq
 
 one :: Type -> Literal
+one ByteType = Int 1
+one ShortType = Int 1
 one IntType = Int 1
+one LongType = Long 1
 one FloatType = Float 1
 one DoubleType = Double 1
 
@@ -68,7 +72,10 @@ class Typed a where
   typeof :: a -> Type
 
 instance Typed Literal where
-  typeof (Int _)     = IntType
+  typeof (Int n)     | -128 <= n && n < 128 = ByteType
+                     | -32768 <= n && n < 32768 = ShortType
+                     | otherwise = IntType
+  typeof (Long _)    = LongType
   typeof (Boolean _) = BooleanType
   typeof (Float _)   = FloatType
   typeof (Double _)  = DoubleType

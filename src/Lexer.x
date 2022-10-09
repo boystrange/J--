@@ -35,6 +35,8 @@ import Control.Monad (liftM)
 $digit    = 0-9
 $hexdigit = [0-9a-fA-F]
 $alpha    = [A-Za-z]
+$any      = [\x00-\x10ffff]
+@comment  = ($any # \*) | ($any # \*)+ [^\*\/]
 @next     = $alpha | $digit | \_
 @id       = $alpha @next*
 @nat      = $digit+ | 0x $hexdigit+
@@ -42,6 +44,7 @@ $alpha    = [A-Za-z]
 @minus    = \-
 @exp      = [eE] @sign? @nat
 @int      = @minus? @nat
+@long     = @int [lL]
 @floating = @minus? (@nat \. @nat?) | (@nat? \. @nat) @exp?
 @float    = @floating [fF]
 @double   = @floating [dD]
@@ -54,6 +57,7 @@ $alpha    = [A-Za-z]
 tokens :-
   $white+   ;
   "//".*    ;
+  "/*"@comment*"*/" ;
   "."       { lex' TokenDOT         }
   ","       { lex' TokenCOMMA       }
   ":"       { lex' TokenCOLON       }
@@ -84,6 +88,7 @@ tokens :-
   "!"       { lex' TokenEMARK       }
   @id       { lex lookupID          }
   @int      { lex (TokenINT . read) }
+  @long     { lex (TokenLONG . read . init) }
   @float    { lex (TokenFLOAT . read . init) }
   @double   { lex (TokenDOUBLE . read . init) }
   @floating { lex (TokenDOUBLE . read) }
@@ -108,7 +113,10 @@ keywords :: [(String, TokenClass)]
 keywords = [("new",       TokenNew),
             ("void",      TokenVoid),
             ("boolean",   TokenBoolean),
+            ("byte",      TokenByte),
+            ("short",     TokenShort),
             ("int",       TokenInt),
+            ("long",      TokenLong),
             ("float",     TokenFloat),
             ("double",    TokenDouble),
             ("char",      TokenChar),
@@ -136,7 +144,10 @@ data Token = Token AlexPosn TokenClass
 data TokenClass
   = TokenNew
   | TokenVoid
+  | TokenByte
+  | TokenShort
   | TokenInt
+  | TokenLong
   | TokenBoolean
   | TokenFloat
   | TokenDouble
@@ -153,6 +164,7 @@ data TokenClass
   | TokenTrue
   | TokenFalse
   | TokenINT Int
+  | TokenLONG Integer
   | TokenFLOAT Float
   | TokenDOUBLE Double
   | TokenCHAR Char
